@@ -1,7 +1,10 @@
 def main():
-    n = 640
-    results = conversion(n)
-    print(results)
+    n = 640 # Length in meters
+    inches, feet, yards, miles = conversion(n)
+    print('Inches', inches)
+    print('Feet', feet)
+    print('Yards', yards)
+    print('Miles', miles)
 
 def conversion(n):
     meters_to_inches = n / 0.0254
