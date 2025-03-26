@@ -1,12 +1,13 @@
 try:
-    file_path = '/Users/bellaskriver/Documents/GitHub/VSMN20/Worksheet 1/numbers.txt'
+    file_path = '/Users/bellaskriver/Documents/GitHub/VSMN20/Worksheet 1/numdbers.txt'
     total_sum = 0
     with open(file_path, 'r') as file:
         for line in file:
             try:
                 total_sum += float(line.strip())
-            except ValueError:
-                print(f"Invalid data found in file: {line.strip()}")
+                print(line)
+            except ValueError as e:
+                print(f"Error: {e}")
     
     print(f"The total sum is: {total_sum}")
 
