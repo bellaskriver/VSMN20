@@ -4,9 +4,19 @@ import numpy as np
 import calfem.core as cfc
 import calfem.utils as cfu
 import tabulate as tab
+import flowmodel as fm
 
+if __name__ == "__main__":
 
-# Stores input parameters required for calculation
+    model_params = fm.ModelParams()
+    model_result = fm.ModelResult()
+
+    solver = fm.ModelSolver(model_params, model_result)
+    solver.execute()
+
+    report = fm.ModelReport(model_params, model_result)
+    print(report)
+
 class ModelParams:
     """Class defining the model parameters"""
     def __init__(self):
@@ -51,8 +61,8 @@ class ModelParams:
             [2, -15.0]
         ]
 
-# Implements solution algorithm for the chosen problem
-class Solver:
+
+class ModelSolver:
     
     """Class for performing the model computations."""
     def __init__(self, model_params, model_result):
@@ -68,6 +78,8 @@ class Solver:
         loads = self.model_params.loads
         bcs = self.model_params.bcs 
 
+        # Beräkningskod
+
 
         # --- Store results in model_results
 
@@ -77,7 +89,7 @@ class Solver:
         self.model_result.qs = qs
         self.model_result.qt = qt
 
-# Stores calculation results for later use
+
 class ModelResult:
     """Class for storing results from calculations."""
     def __init__(self):
@@ -87,5 +99,32 @@ class ModelResult:
         self.qs = None
         self.qt = None
 
-# Generates formatted reports of inputs and outputs
-ModelReport = 
+        if self.a == None:
+            self.a = np.array(...) # Tilldela en riktigt datatyp om self.a == None
+
+
+class ModelReport:
+    """Class for presenting input and output parameters in report form."""
+    def __init__(self, model_params, model_result):
+        self.model_params = model_params
+        self.model_result = model_result
+        self.report = ""
+
+    def clear(self):
+        self.report = ""
+
+    def add_text(self, text=""):
+        self.report+=str(text)+"\n"
+
+    def __str__(self):
+        self.clear()
+        self.add_text()
+        self.add_text("-------------- Model input ----------------------------------")
+        ...
+        self.add_text("Coordinates:")
+        self.add_text()
+        self.add_text(
+            tab.tabulate(self.params.coords, headers=["x", "y"], tablefmt="psql")
+        )
+        ...
+        return self.report

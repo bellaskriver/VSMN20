@@ -6,10 +6,19 @@ def main():
     calculations(A, b)
 
 def calculations(A, b):
-    print('A invers:', np.linalg.inv(A))
-    print(' Matris multiplikation A*b:', A @ b)
-    print('A transponat:', np.transpose(A))
-    print('x från Ax=b:',np.linalg.solve (A, b))
+    print()
+    print('Inversen av A är:')
+    print(np.linalg.inv(A))
+    print()
+    print('Matrismultiplikationen A*b ger:')
+    print(A @ b)
+    print()
+    print('Transponatet av A är:')
+    print(np.transpose(A))
+    print()
+    print('Beräknat x från ekvationssystemet Ax=b är:')
+    print(np.linalg.solve(A, b))
+    print()
 
 main()
 

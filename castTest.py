@@ -1,1 +1,0 @@
-print(float("10 1"))

@@ -1,12 +1,14 @@
 def main(): 
-    print('Fahrenheit to Celsius:', temperture())
+    print()
+    print(f"{'Fahrenheit':<12}{'Celsius':<12}")
+    print("-" * 20)
+    temperture()
+    print()
 
 def temperture():
-    matrix_C = []
-    for n in range(10):
+    for n in range(11):
         F = n * 10
         C = 5 / 9 * (F - 32)
-        matrix_C.append((F, C))
-    return matrix_C
+        print(f"{F:<12}{C:<12.2f}")
 
 main()
