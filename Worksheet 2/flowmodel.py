@@ -22,7 +22,6 @@ class ModelParams:
     def __init__(self):
 
         self.version = 1
-
         self.t = 1
         self.ep = [self.t]
 
