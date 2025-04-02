@@ -35,6 +35,17 @@ class ModelParams:
             [1200.0, 600.0]
         ])
 
+        '''
+        self.dof = np.array([
+            [1, 2],
+            [3, 4],
+            [5, 6],
+            [7, 8],
+            [9, 10],
+            [11, 12]
+        ])
+        '''
+
         self.ex = np.array([
             [0.0, 0.0, 600.0],
             [0.0, 600.0, 600.0],
@@ -74,37 +85,34 @@ class ModelParams:
 
         self.dof = None
 
-        #def save(self, filename):
-            #"""Save input to file."""
-                #model_params = {}
-                #model_params["version"] = self.version
-                #model_params["t"] = self.t
-                #model_params["ep"] = self.ep
+        def save(self, filename):
+            """Save input to file."""
+            model_params = {}
+            model_params["version"] = self.version
+            model_params["t"] = self.t
+            model_params["ep"] = self.ep
 
-                #model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
+            model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
 
-                #ofile = open(filename, "w")
-                #json.dump(model_params, ofile, sort_keys = True, indent = 4)
-                #ofile.close()
+            ofile = open(filename, "w")
+            json.dump(model_params, ofile, sort_keys = True, indent = 4)
+            ofile.close()
 
-        #def load(self, filename):
-                #"""Read input from file."""
+        def load(self, filename):
+            """Read input from file."""
 
-                #ifile = open(filename, "r")
-                #model_params = json.load(ifile)
-                #ifile.close()
+            ifile = open(filename, "r")
+            model_params = json.load(ifile)
+            ifile.close()
 
-                #self.version = model_params["version"]
-                #self.t = model_params["t"]
-                #self.ep = model_params["ep"]
-                #self.coord = np.asarray(model_params["coord"])
-
-
+            self.version = model_params["version"]
+            self.t = model_params["t"]
+            self.ep = model_params["ep"]
+            self.coord = np.asarray(model_params["coord"])
 
 
 
 
-                
 class ModelResult:
     """Class for storing results from calculations."""
     def __init__(self):
@@ -169,10 +177,14 @@ class ModelSolver:
             bc_prescr.append(dof)
             bc_value.append(value)
 
+        dof = np.array([1, 2, 3, 4, 5, 6])
+
         bc_prescr = np.array(bc_prescr)
         bc_value = np.array(bc_value)
 
         a, r = cfc.solveq(K, f, bc_prescr, bc_value)
+    
+        print(a)
 
         ed = cfc.extractEldisp(edof, a) 
 
@@ -209,8 +221,8 @@ class ModelSolver:
         self.model_result.a = a
         self.model_result.r = r
         self.model_result.ed = ed
-       # self.model_result.qs = qs #problem här
-       # self.model_result.qt = qt #problem här
+        #self.model_result.qs = qs #problem här
+        #self.model_result.qt = qt #problem här
 
 
 class ModelReport:
@@ -258,23 +270,27 @@ class ModelReport:
         self.add_text()
         self.add_text("Nodal values:")
         self.add_text()
-        self.add_text(
-            tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.a) + 1), self.model_result.a)),
-            headers=["D.o.f.", "Phi [m]"],
+        self.add_text(tab.tabulate(np.asarray(np.hstack((self.model_result.a, self.model_result.r))),
+            headers=["Phi [m]", "q [m^2/day]"],
+            numalign="right",
+            floatfmt=".4f",
             tablefmt="psql",
-            floatfmt=".4f"
-            )
-        )
+           # showindex=range(1, len(a_and_r) + 1),
+            ))
+
+        '''
         self.add_text()
         self.add_text("Reaction forces:")
         self.add_text()
         self.add_text(
             tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.r) + 1), self.model_result.r)),
-            headers=["D.o.f.", "Reaction [m^2/day]"],
+            headers=["Reaction [m^2/day]"],
             tablefmt="psql",
             floatfmt=".4f"
             )
-        )
+        )'''
+
+        '''
         self.add_text()
         self.add_text("Element flows and gradients:")
         self.add_text()
@@ -284,6 +300,7 @@ class ModelReport:
             tablefmt="psql",
             floatfmt=".4f"
             )
-        )
+        )'
+        '''
 
         return self.report

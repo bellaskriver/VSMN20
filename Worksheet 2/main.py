@@ -6,7 +6,7 @@ if __name__ == "__main__":
 
     model_params = fm.ModelParams()
     model_result = fm.ModelResult()
-
+    fm.ModelParams.save("test_json")
     solver = fm.ModelSolver(model_params, model_result)
     solver.execute()
 
