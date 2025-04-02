@@ -74,6 +74,37 @@ class ModelParams:
 
         self.dof = None
 
+        #def save(self, filename):
+            #"""Save input to file."""
+                #model_params = {}
+                #model_params["version"] = self.version
+                #model_params["t"] = self.t
+                #model_params["ep"] = self.ep
+
+                #model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
+
+                #ofile = open(filename, "w")
+                #json.dump(model_params, ofile, sort_keys = True, indent = 4)
+                #ofile.close()
+
+        #def load(self, filename):
+                #"""Read input from file."""
+
+                #ifile = open(filename, "r")
+                #model_params = json.load(ifile)
+                #ifile.close()
+
+                #self.version = model_params["version"]
+                #self.t = model_params["t"]
+                #self.ep = model_params["ep"]
+                #self.coord = np.asarray(model_params["coord"])
+
+
+
+
+
+
+                
 class ModelResult:
     """Class for storing results from calculations."""
     def __init__(self):
@@ -103,7 +134,6 @@ class ModelSolver:
         bcs = self.model_params.bcs
         D = self.model_params.D
 
-
         # --- Calculate element stiffness matrices and assemble global stiffness matrix
         K = np.zeros((6, 6))
         f = np.zeros((6, 1))
@@ -111,10 +141,10 @@ class ModelSolver:
         f[5] = -400
 
         # --- Calculate element stiffness matrices and assemble global stiffness matrix
-        ke1 = cfc.flw2te(ex[0,:], ey[1,:], ep, D)
-        ke2 = cfc.flw2te(ex[1,:], ey[2,:], ep, D)
-        ke3 = cfc.flw2te(ex[2,:], ey[3,:], ep, D)
-        ke4 = cfc.flw2te(ex[3,:], ey[4,:], ep, D)
+        ke1 = cfc.flw2te(ex[0,:], ey[0,:], ep, D)
+        ke2 = cfc.flw2te(ex[1,:], ey[1,:], ep, D)
+        ke3 = cfc.flw2te(ex[2,:], ey[2,:], ep, D)
+        ke4 = cfc.flw2te(ex[3,:], ey[3,:], ep, D)
         
         # --- Assemble global stiffness matrix
         cfc.assem(edof[0, :], K, ke1, f)
@@ -123,12 +153,7 @@ class ModelSolver:
         cfc.assem(edof[3, :], K, ke4, f)
 
         # --- Calculate element flow and gradient vectors
-        cfc.flw2ts(ex[0, :], ey[1, :], D, ed)
-        cfc.flw2ts(ex[1, :], ey[2, :], D, ed)
-        cfc.flw2ts(ex[2, :], ey[3, :], D, ed)
-        cfc.flw2ts(ex[3, :], ey[4, :], D, ed)
     
-      # Calculate
         for load in loads:
                 print(load)
                 dof = load[0]
@@ -149,6 +174,15 @@ class ModelSolver:
 
         a, r = cfc.solveq(K, f, bc_prescr, bc_value)
 
+        ed = cfc.extractEldisp(edof, a) 
+
+        n_el = edof.shape[0]  # 4
+        es = np.zeros((n_el, 2))
+        et = np.zeros((n_el, 2))
+
+        for i in range(n_el):
+            es[i,:], et[i,:] = cfc.flw2ts(ex[i,:], ey[i,:], D, ed[i,:])
+
     # Combinine multiple arrays
         a_and_r = np.hstack((a, r))
 
@@ -159,8 +193,7 @@ class ModelSolver:
             floatfmt=".4f",
             tablefmt="psql",
             showindex=range(1, len(a_and_r) + 1),
-
-    )
+        )
 
         # Calculate element flows and gradients
         es = np.zeros([n_el, 2])
@@ -173,11 +206,12 @@ class ModelSolver:
 
             # --- Store results in model_results
 
-            self.model_result.a = a
-            self.model_result.r = r
-            self.model_result.ed = ed
-            self.model_result.qs = qs
-            self.model_result.qt = qt
+        self.model_result.a = a
+        self.model_result.r = r
+        self.model_result.ed = ed
+       # self.model_result.qs = qs #problem här
+       # self.model_result.qt = qt #problem här
+
 
 class ModelReport:
     """Class for presenting input and output parameters in report form."""
@@ -196,11 +230,10 @@ class ModelReport:
         self.clear()
         self.add_text()
         self.add_text("-------------- Model input ----------------------------------")
-        ...
         self.add_text("Coordinates:")
         self.add_text()
         self.add_text(
-            tab.tabulate(self.params.coords, headers=["x", "y"], tablefmt="psql")
+            tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
         )
         
         self.add_text("Element topology:")
@@ -226,8 +259,7 @@ class ModelReport:
         self.add_text("Nodal values:")
         self.add_text()
         self.add_text(
-            tab.tabulate(
-            np.column_stack((np.arange(1, len(self.model_result.a) + 1), self.model_result.a)),
+            tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.a) + 1), self.model_result.a)),
             headers=["D.o.f.", "Phi [m]"],
             tablefmt="psql",
             floatfmt=".4f"
@@ -237,8 +269,7 @@ class ModelReport:
         self.add_text("Reaction forces:")
         self.add_text()
         self.add_text(
-            tab.tabulate(
-            np.column_stack((np.arange(1, len(self.model_result.r) + 1), self.model_result.r)),
+            tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.r) + 1), self.model_result.r)),
             headers=["D.o.f.", "Reaction [m^2/day]"],
             tablefmt="psql",
             floatfmt=".4f"
@@ -248,8 +279,7 @@ class ModelReport:
         self.add_text("Element flows and gradients:")
         self.add_text()
         self.add_text(
-            tab.tabulate(
-            np.column_stack((np.arange(1, len(self.model_result.qs) + 1), self.model_result.qs, self.model_result.qt)),
+            tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.qs) + 1), self.model_result.qs, self.model_result.qt)),
             headers=["Element", "Flow [m^2/day]", "Gradient [m/m]"],
             tablefmt="psql",
             floatfmt=".4f"
