@@ -147,7 +147,7 @@ class ModelSolver:
         cfc.assem(edof[2, :], K, ke3, f)
         cfc.assem(edof[3, :], K, ke4, f)
 
-        # --- Calculate element flow and gradient vectors
+        # --- Calculate element flow and gradient vectors 
     
         for load in loads:
                 dof = load[0]
@@ -188,7 +188,7 @@ class ModelSolver:
             showindex=range(1, len(a_and_r) + 1),
         )
 
-        # Calculate element flows and gradients
+        # Calculate element flows and gradients 
         es = np.zeros([n_el, 2])
         et = np.zeros([n_el, 2])
 
