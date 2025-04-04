@@ -35,16 +35,7 @@ class ModelParams:
             [1200.0, 600.0]
         ])
 
-        '''
-        self.dof = np.array([
-            [1, 2],
-            [3, 4],
-            [5, 6],
-            [7, 8],
-            [9, 10],
-            [11, 12]
-        ])
-        '''
+        # --- Element coordinates in x
 
         self.ex = np.array([
             [0.0, 0.0, 600.0],
@@ -53,12 +44,15 @@ class ModelParams:
             [600.0, 1200.0, 1200.0]
         ])
 
+        # --- Element coordinates in y
+
         self.ey = np.array([
             [0.0, 600.0, 600.0],
             [0.0, 600.0, 0.0],
             [0.0, 600.0, 600.0],
             [0.0, 600.0, 0.0]
         ])
+
         # --- Element topology 
                
         self.edof = np.array([
@@ -77,41 +71,38 @@ class ModelParams:
         # --- Boundary conditions
 
         self.bcs = [
-            [2, 60.],
-            [4, 60.],
             [1, 0.],  # Added constraint to fix the first degree of freedom
-            [3, 0.]   # Added constraint to fix the third degree of freedom
+            [2, 60.],
+            [3, 0.],  # Added constraint to fix the third degree of freedom
+            [4, 60.]
         ]
 
         self.dof = None
 
-        def save(self, filename):
-            """Save input to file."""
-            model_params = {}
-            model_params["version"] = self.version
-            model_params["t"] = self.t
-            model_params["ep"] = self.ep
+    def save(self, filename):
+        """Save input to file."""
+        model_params = {}
+        model_params["version"] = self.version
+        model_params["t"] = self.t
+        model_params["ep"] = self.ep
 
-            model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
+        model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
 
-            ofile = open(filename, "w")
-            json.dump(model_params, ofile, sort_keys = True, indent = 4)
-            ofile.close()
+        ofile = open(filename, "w")
+        json.dump(model_params, ofile, sort_keys = True, indent = 4)
+        ofile.close()
 
-        def load(self, filename):
-            """Read input from file."""
+    def load(self, filename):
+        """Read input from file."""
 
-            ifile = open(filename, "r")
-            model_params = json.load(ifile)
-            ifile.close()
+        ifile = open(filename, "r")
+        model_params = json.load(ifile)
+        ifile.close()
 
-            self.version = model_params["version"]
-            self.t = model_params["t"]
-            self.ep = model_params["ep"]
-            self.coord = np.asarray(model_params["coord"])
-
-
-
+        self.version = model_params["version"]
+        self.t = model_params["t"]
+        self.ep = model_params["ep"]
+        self.coord = np.asarray(model_params["coord"])
 
 class ModelResult:
     """Class for storing results from calculations."""
@@ -163,7 +154,6 @@ class ModelSolver:
         # --- Calculate element flow and gradient vectors
     
         for load in loads:
-                print(load)
                 dof = load[0]
                 mag = load[1]
                 f[dof - 1] = mag
@@ -183,8 +173,6 @@ class ModelSolver:
         bc_value = np.array(bc_value)
 
         a, r = cfc.solveq(K, f, bc_prescr, bc_value)
-    
-        print(a)
 
         ed = cfc.extractEldisp(edof, a) 
 
@@ -224,7 +212,6 @@ class ModelSolver:
         #self.model_result.qs = qs #problem här
         #self.model_result.qt = qt #problem här
 
-
 class ModelReport:
     """Class for presenting input and output parameters in report form."""
     def __init__(self, model_params, model_result):
@@ -242,11 +229,30 @@ class ModelReport:
         self.clear()
         self.add_text()
         self.add_text("-------------- Model input ----------------------------------")
+        
+
+        elf.add_text("Input parameters:")
+        self.add_text()
+        self.add_text(
+            tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
+        )
+        
+        
+        
+        
         self.add_text("Coordinates:")
         self.add_text()
         self.add_text(
             tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
         )
+
+        elf.add_text("Dofs:")
+        self.add_text()
+        self.add_text(
+            tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
+        )
+
+
         
         self.add_text("Element topology:")
         self.add_text()
