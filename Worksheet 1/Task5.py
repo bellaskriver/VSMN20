@@ -1,5 +1,7 @@
+import numpy as np
+
 try:
-    file_path = '/Users/bellaskriver/Documents/GitHub/VSMN20/Worksheet 1/numbers.txt'
+    file_path = './Worksheet 1/numbers.txt'
     total_sum = 0
     with open(file_path, 'r') as file:
         for line in file:

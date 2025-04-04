@@ -38,9 +38,9 @@ class ModelParams:
         # --- Element coordinates in x
 
         self.ex = np.array([
-            [0.0, 0.0, 600.0],
+            [0.0, 600.0, 0.0],
             [0.0, 600.0, 600.0],
-            [600.0, 600.0, 1200.0],
+            [600.0, 1200.0, 600.0],
             [600.0, 1200.0, 1200.0]
         ])
 
@@ -48,18 +48,18 @@ class ModelParams:
 
         self.ey = np.array([
             [0.0, 600.0, 600.0],
-            [0.0, 600.0, 0.0],
+            [0.0, 0.0, 600.0],
             [0.0, 600.0, 600.0],
-            [0.0, 600.0, 0.0]
+            [0.0, 0.0, 600.0]
         ])
 
         # --- Element topology 
                
         self.edof = np.array([
-            [1, 2, 4],
-            [1, 4, 3],
-            [3, 4, 6],
-            [3, 6, 5]
+            [1, 4, 2],
+            [1, 3, 4],
+            [3, 6, 4],
+            [3, 5, 6]
         ])
 
         # --- Loads
@@ -71,9 +71,7 @@ class ModelParams:
         # --- Boundary conditions
 
         self.bcs = [
-            [1, 0.],  # Added constraint to fix the first degree of freedom
             [2, 60.],
-            [3, 0.],  # Added constraint to fix the third degree of freedom
             [4, 60.]
         ]
 
@@ -110,8 +108,6 @@ class ModelResult:
         self.a = None
         self.r = None
         self.ed = None
-        self.qs = None
-        self.qt = None
 
 class ModelSolver:
     """Class for performing the model computations."""
@@ -133,7 +129,7 @@ class ModelSolver:
         bcs = self.model_params.bcs
         D = self.model_params.D
 
-        # --- Calculate element stiffness matrices and assemble global stiffness matrix
+        # --- Create global stiffness matrix and load vector
         K = np.zeros((6, 6))
         f = np.zeros((6, 1))
 
@@ -151,7 +147,7 @@ class ModelSolver:
         cfc.assem(edof[2, :], K, ke3, f)
         cfc.assem(edof[3, :], K, ke4, f)
 
-        # --- Calculate element flow and gradient vectors
+        # --- Calculate element flow and gradient vectors bella
     
         for load in loads:
                 dof = load[0]
@@ -180,9 +176,6 @@ class ModelSolver:
         es = np.zeros((n_el, 2))
         et = np.zeros((n_el, 2))
 
-        for i in range(n_el):
-            es[i,:], et[i,:] = cfc.flw2ts(ex[i,:], ey[i,:], D, ed[i,:])
-
     # Combinine multiple arrays
         a_and_r = np.hstack((a, r))
 
@@ -195,7 +188,7 @@ class ModelSolver:
             showindex=range(1, len(a_and_r) + 1),
         )
 
-        # Calculate element flows and gradients
+        # Calculate element flows and gradients bella
         es = np.zeros([n_el, 2])
         et = np.zeros([n_el, 2])
 
@@ -209,8 +202,10 @@ class ModelSolver:
         self.model_result.a = a
         self.model_result.r = r
         self.model_result.ed = ed
-        #self.model_result.qs = qs #problem här
-        #self.model_result.qt = qt #problem här
+        self.model_result.es = es
+        self.model_result.et = et  
+
+        # Did not record the results for qs and qt due to these representing the same values as es and et
 
 class ModelReport:
     """Class for presenting input and output parameters in report form."""
@@ -225,88 +220,97 @@ class ModelReport:
     def add_text(self, text=""):
         self.report+=str(text)+"\n"
 
+    # Creating individual arrays for D.o.f. and element numbers due to this not working according to the documentation 
+
     def __str__(self):
         self.clear()
         self.add_text()
-        self.add_text("-------------- Model input ----------------------------------")
+        self.add_text("-------------- Model Inputs ----------------------------------")
         
-
-        elf.add_text("Input parameters:")
+        self.add_text("Input parameters:")
         self.add_text()
-        self.add_text(
-            tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
-        )
-        
-        
-        
-        
+        self.add_text(tab.tabulate(np.asarray([np.hstack((self.model_params.t, self.model_params.k_x))]), 
+            headers=["t", "k"],
+            numalign="right",
+            floatfmt=".0f", 
+            tablefmt="psql",
+        ))
+
+        self.add_text()
         self.add_text("Coordinates:")
         self.add_text()
         self.add_text(
             tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
         )
 
-        elf.add_text("Dofs:")
+        self.add_text()
+        self.add_text("Dofs:")
         self.add_text()
         self.add_text(
-            tab.tabulate(self.model_params.coord, headers=["x", "y"], tablefmt="psql")
+            tab.tabulate(np.array([[1], [2], [3], [4], [5], [6]]), headers=["D.o.f."], tablefmt="psql")
         )
 
-
-        
+        self.add_text()
         self.add_text("Element topology:")
         self.add_text()
         self.add_text(
             tab.tabulate(self.model_params.edof, headers=["Node 1", "Node 2", "Node 3"], tablefmt="psql")
         )
-        self.add_text()
-        self.add_text("Boundary conditions:")
-        self.add_text()
-        self.add_text(
-            tab.tabulate(self.model_params.bcs, headers=["D.o.f.", "Value"], tablefmt="psql")
-        )
+
         self.add_text()
         self.add_text("Loads:")
         self.add_text()
         self.add_text(
             tab.tabulate(self.model_params.loads, headers=["D.o.f.", "Value"], tablefmt="psql")
         )
+
+        self.add_text()
+        self.add_text("Boundary conditions:")
+        self.add_text()
+        self.add_text(
+            tab.tabulate(self.model_params.bcs, headers=["D.o.f.", "Value"], tablefmt="psql")
+        )
+       
         self.add_text()
         self.add_text("-------------- Model results --------------------------------")
         self.add_text()
-        self.add_text("Nodal values:")
+        self.add_text("Nodal temps and flows (a and r):")
         self.add_text()
-        self.add_text(tab.tabulate(np.asarray(np.hstack((self.model_result.a, self.model_result.r))),
-            headers=["Phi [m]", "q [m^2/day]"],
+        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4], [5], [6]]), self.model_result.a, self.model_result.r))),
+            headers=["D.o.f.", "Phi [m]", "q [m^2/day]"],
             numalign="right",
-            floatfmt=".4f",
+            floatfmt=(".0f", ".4f", ".4f"),
             tablefmt="psql",
-           # showindex=range(1, len(a_and_r) + 1),
             ))
 
-        '''
         self.add_text()
-        self.add_text("Reaction forces:")
+        self.add_text("Element flows (es):")
         self.add_text()
-        self.add_text(
-            tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.r) + 1), self.model_result.r)),
-            headers=["Reaction [m^2/day]"],
+        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.es))),
+            headers=["Element", "q_x m^2/day]", "q_y [m^2/day]"],
+            numalign="right",
+            floatfmt=(".0f", ".4f", ".4f"),
             tablefmt="psql",
-            floatfmt=".4f"
-            )
-        )'''
+            ))
 
-        '''
         self.add_text()
-        self.add_text("Element flows and gradients:")
+        self.add_text("Element gradients (et):")
         self.add_text()
-        self.add_text(
-            tab.tabulate(np.column_stack((np.arange(1, len(self.model_result.qs) + 1), self.model_result.qs, self.model_result.qt)),
-            headers=["Element", "Flow [m^2/day]", "Gradient [m/m]"],
+        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.et))),
+            headers=["Element", "g_x [-]", "g_y [-]"],
+            numalign="right",
+            floatfmt=(".0f", ".4f", ".4f"),
             tablefmt="psql",
-            floatfmt=".4f"
-            )
-        )'
-        '''
+            ))
+        
+        self.add_text()
+        self.add_text("Element temps (ed):")
+        self.add_text()
+        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.ed))),
+            headers=["Element", "Phi_1 [m]", "Phi_2 [m]", "Phi_3 [m]"],
+            numalign="right",
+            floatfmt=(".0f", ".4f", ".4f", ".4f"),
+            tablefmt="psql",
+            ))
 
         return self.report
