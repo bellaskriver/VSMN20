@@ -287,7 +287,7 @@ class ModelReport:
         self.add_text("Element flows (es):")
         self.add_text()
         self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.es))),
-            headers=["Element", "q_x m^2/day]", "q_y [m^2/day]"],
+            headers=["Element", "q_x [m^2/day]", "q_y [m^2/day]"],
             numalign="right",
             floatfmt=(".0f", ".4f", ".4f"),
             tablefmt="psql",
