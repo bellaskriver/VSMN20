@@ -8,7 +8,7 @@ if __name__ == "__main__":
     model_result = fm.ModelResult() # Initiate class ModelResult
     
     #model_params.load("test_json") # Load file
-    #model_params.save("test_json") # Save file
+    model_params.save("test_json") # Save file
     
     solver = fm.ModelSolver(model_params, model_result) # Initiate class ModelSolver
     solver.execute() # Execute ModelSolver

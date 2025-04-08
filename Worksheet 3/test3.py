@@ -10,9 +10,9 @@ import calfem.mesh as cfm      # For mesh generation
 import calfem.vis_mpl as cfv   # For visualization
 import calfem.utils as cfu     # Utility functions
 
+import tabulate as tab
 import numpy as np
 import tabulate as tb
-
 
 class ModelParams:
     """Class defining parametric model properties"""
@@ -33,6 +33,7 @@ class ModelParams:
 
         self.kx = 20.0  # Permeability in x-direction
         self.ky = 20.0  # Permeability in y-direction
+        self.D = np.array([[self.kx, 0], [0, self.ky]]) #bella
     
         # Mesh control
 
@@ -47,8 +48,8 @@ class ModelParams:
         }
 
         self.bc_values = {
-            "left_bc": 10.0,  # Value for left boundary
-            "right_bc": 0.0  # Value for right boundary
+            "left_bc": 60.0,  # Value for left boundary
+            "right_bc": 60.0  # Value for right boundary
         }
 
         self.load_markers = {
@@ -111,6 +112,31 @@ class ModelParams:
         # Return the complete geometry
         return g
     
+    def save(self, filename):
+        """Save input to file."""
+        model_params = {}
+        model_params["version"] = self.version
+        model_params["t"] = self.t
+        model_params["ep"] = self.ep
+
+        model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
+
+        ofile = open(filename, "w")
+        json.dump(model_params, ofile, sort_keys = True, indent = 4)
+        ofile.close()
+
+    def load(self, filename):
+        """Read input from file."""
+
+        ifile = open(filename, "r")
+        model_params = json.load(ifile)
+        ifile.close()
+
+        self.version = model_params["version"]
+        self.t = model_params["t"]
+        self.ep = model_params["ep"]
+        self.coord = np.asarray(model_params["coord"])
+    
 class ModelSolver:
     """Class for solving the finite element model"""
     def __init__(self, model_params, model_result):
@@ -125,9 +151,7 @@ class ModelSolver:
         ep = self.model_params.ep
         kx = self.model_params.kx
         ky = self.model_params.ky
-
-        # Create D matrix
-        D = np.array([[kx, 0], [0, ky]])
+        D = self.model_params.D
 
         # Get geometry from model_params
 
@@ -167,96 +191,54 @@ class ModelSolver:
         self.model_result.boundary_elements = boundary_elements
         self.model_result.el_type = el_type
         self.model_result.dofs_per_node = dofs_per_node
+         
+        # --- Create global stiffness matrix and load vector
+        n_dofs = np.max(dofs)
+        K = np.zeros((n_dofs, n_dofs))
+        f = np.zeros((n_dofs, 1))
 
-         # --- Create global stiffness matrix and load vector
-        K = np.zeros((6, 6))
-        f = np.zeros((6, 1))
-
-        f[5] = -400
+        # --- Apply loads to the load vector
+        for marker_name, marker_id in self.model_params.load_markers.items():
+            if marker_name in self.model_params.load_values:
+                value = self.model_params.load_values[marker_name]
+                cfu.apply_force_from_markers(
+                    bdofs,
+                    boundary_elements,
+                    marker_id,
+                    f,
+                    value
+                )
 
         # --- Calculate element stiffness matrices and assemble global stiffness matrix
-        ke1 = cfc.flw2te(coords[0,:], coords[0,:], ep, D)
-        ke2 = cfc.flw2te(coords[1,:], coords[1,:], ep, D)
-        ke3 = cfc.flw2te(coords[2,:], coords[2,:], ep, D)
-        ke4 = cfc.flw2te(coords[3,:], coords[3,:], ep, D)
+        ke_list = []
+        for coord in coords:
+            ke = cfc.flw2te(coord, coord, ep, D)
+            ke_list.append(ke)
         
         # --- Assemble global stiffness matrix
-        cfc.assem(edof[0, :], K, ke1, f)
-        cfc.assem(edof[1, :], K, ke2, f)
-        cfc.assem(edof[2, :], K, ke3, f)
-        cfc.assem(edof[3, :], K, ke4, f)
+        for i, ke in enumerate(ke_list):
+            cfc.assem(edof[i, :], K, ke, f)
 
         # --- Calculate element flow and gradient vectors
-    
-       ''' for load in loads:
+        '''
+        for load in loads: #bella
                 dof = load[0]
                 mag = load[1]
                 f[dof - 1] = mag
 
         bc_prescr = []
-        bc_value = []
+        bc_values = []
 
-        for bc in bcs:
+        for bc in bcs: #bella
             dof = bc[0]
             value = bc[1]
             bc_prescr.append(dof)
-            bc_value.append(value) '''
-
-        dof = np.array([1, 2, 3, 4, 5, 6])
+            bc_value.append(value) 
 
         bc_prescr = np.array(bc_prescr)
         bc_value = np.array(bc_value)
 
-        a, r = cfc.solveq(K, f, bc_prescr, bc_value)
-
-        ed = cfc.extractEldisp(edof, a) 
-
-        n_el = edof.shape[0]  # 4
-        es = np.zeros((n_el, 2))
-        et = np.zeros((n_el, 2))
-
-    # Combinine multiple arrays
-        a_and_r = np.hstack((a, r))
-
-        temp_table = tab.tabulate(
-            np.asarray(a_and_r),
-            headers=["D.o.f.", "Phi [m]", "q [m^2/day]"],
-            numalign="right",
-            floatfmt=".4f",
-            tablefmt="psql",
-            showindex=range(1, len(a_and_r) + 1),
-        )
-
-        # Calculate element flows and gradients
-        es = np.zeros([n_el, 2])
-        et = np.zeros([n_el, 2])
-
-        for elx, ely, eld, eles, elet in zip(ex, ey, ed, es, et):
-            es_el, et_el = cfc.flw2ts(elx, ely, D, eld)
-            eles[:] = es_el[0, :]
-            elet[:] = et_el[0, :]
-
-            # --- Store results in model_results
-
-        # 
-        # Now continue with FE calculation similar to Worksheet 2
-        # but using the generated mesh data
-
-        # Extract node and element data from mesh for element calculations
-        # ...
-
-                # Initialize the global stiffness matrix and load vector
-
-        n_dofs = np.max(dofs)
-        K = np.zeros((n_dofs, n_dofs))
-        f = np.zeros((n_dofs, 1))
-
-        # TODO:
-        #
-        # Assemble element contributions to global stiffness matrix
-        # ... (similar to Worksheet 2)
-
-        # Apply boundary conditions based on markers
+        '''
 
         bc_prescr = []
         bc_values = []
@@ -302,18 +284,37 @@ class ModelSolver:
         self.model_result.a = a
         self.model_result.r = r
 
-        # TODO:
-        #
-        # Calculate element displacements, stresses/flows, etc.
-        # ... (similar to Worksheet 2)
+        ed = cfc.extractEldisp(edof, a) 
 
-        # Calculate maximum flow/stress for parameter studies
+        n_el = edof.shape[0]  # 4
+        es = np.zeros((n_el, 2))
+        et = np.zeros((n_el, 2))
+
+    # Combinine multiple arrays
+        a_and_r = np.hstack((a, r))
+
+        temp_table = tab.tabulate(
+            np.asarray(a_and_r),
+            headers=["D.o.f.", "Phi [m]", "q [m^2/day]"],
+            numalign="right",
+            floatfmt=".4f",
+            tablefmt="psql",
+            showindex=range(1, len(a_and_r) + 1),
+        )
+
+        # Calculate element flows and gradients
+        es = np.zeros([n_el, 2])
+        et = np.zeros([n_el, 2])
+
+        for elx, ely, eld, eles, elet in zip(ex, ey, ed, es, et): #bella
+            es_el, et_el = cfc.flw2ts(elx, ely, D, eld)
+            eles[:] = es_el[0, :]
+            elet[:] = et_el[0, :]
 
         element_values = np.sqrt(np.sum(self.model_result.es**2, axis=1))
         self.model_result.max_value = np.max(element_values)
 
-
-        class ModelVisualization:
+class ModelVisualization:
     """Class for visualizing model geometry, mesh, and results"""
 
     def __init__(self, model_params, model_result):
@@ -368,26 +369,33 @@ class ModelSolver:
     def show_nodal_values(self):
         """Display nodal values (e.g., temperature, pressure)"""
 
-        # TODO:
-        #   
-        # Implement this method to display nodal values
+        cfv.figure()
+        cfv.clf()
 
-
+        # Draw nodal values
+        cfv.draw_nodal_values(
+            self.model_result.a,
+            coords=self.model_result.coords,
+            title="Nodal Values"
+        )
 
     def show_element_values(self):
         """Display element values (e.g., flows, stresses)"""
+        cfv.figure()
+        cfv.clf()
 
-        # TODO:
-        #   
-        # Implement this method to display element values
+        # Calculate element values (e.g., magnitude of flow vectors)
+        element_values = np.sqrt(np.sum(self.model_result.es**2, axis=1))
 
-
-    def show_deformed_mesh(self, scale_factor=1.0):
-        """Display deformed mesh (for stress problems)"""
-
-        # TODO:
-        #   
-        # Implement this method to display deformed mesh
+        # Draw element values
+        cfv.draw_element_values(
+            element_values,
+            coords=self.model_result.coords,
+            edof=self.model_result.edof,
+            dofs_per_node=self.model_result.dofs_per_node,
+            el_type=self.model_result.el_type,
+            title="Element Values"
+        )
 
     def wait(self):
         """Wait for user to close all visualization windows"""

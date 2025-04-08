@@ -12,20 +12,18 @@ class ModelParams:
 
         self.version = 1
         
-        self.t = 1
-        self.ep = [self.t]
+        self.t = 1 # Thickness
+        self.ep = [self.t] # Element properties
         
         # --- Element properties
-
-        self.k_x = 50  # m/day
-        self.k_y = 50  # m/day
+        self.k_x = 50  # Permeability in x-direction
+        self.k_y = 50  # Permeability in y-direction
         self.D = np.array([
             [self.k_x, 0],
             [0, self.k_y]
         ])
 
         # --- Element coordinates
-
         self.coord = np.array([
             [0.0, 0.0],
             [0.0, 600.0],
@@ -36,7 +34,6 @@ class ModelParams:
         ])
 
         # --- Element coordinates in x
-
         self.ex = np.array([
             [0.0, 600.0, 0.0],
             [0.0, 600.0, 600.0],
@@ -45,7 +42,6 @@ class ModelParams:
         ])
 
         # --- Element coordinates in y
-
         self.ey = np.array([
             [0.0, 600.0, 600.0],
             [0.0, 0.0, 600.0],
@@ -54,7 +50,6 @@ class ModelParams:
         ])
 
         # --- Element topology 
-               
         self.edof = np.array([
             [1, 4, 2],
             [1, 3, 4],
@@ -63,19 +58,21 @@ class ModelParams:
         ])
 
         # --- Loads
-
         self.loads = [
             [6, -400]
         ]
 
         # --- Boundary conditions
-
         self.bcs = [
             [2, 60.],
             [4, 60.]
         ]
 
-        self.dof = None
+        # --- Nodal degrees of freedom
+        self.dof = np.array([1, 2, 3, 4, 5, 6])
+
+        # --- Element numbers
+        self.elem = np.array([1, 2, 3, 4])
 
     def save(self, filename):
         """Save input to file."""
@@ -118,7 +115,6 @@ class ModelSolver:
     def execute(self):
 
         # --- Assign shorter variable names from model properties
-
         edof = self.model_params.edof
         coord = self.model_params.coord
         dof = self.model_params.dof
@@ -148,7 +144,6 @@ class ModelSolver:
         cfc.assem(edof[3, :], K, ke4, f)
 
         # --- Calculate element flow and gradient vectors
-    
         for load in loads:
                 dof = load[0]
                 mag = load[1]
@@ -163,8 +158,6 @@ class ModelSolver:
             bc_prescr.append(dof)
             bc_value.append(value)
 
-        dof = np.array([1, 2, 3, 4, 5, 6])
-
         bc_prescr = np.array(bc_prescr)
         bc_value = np.array(bc_value)
 
@@ -176,7 +169,7 @@ class ModelSolver:
         es = np.zeros((n_el, 2))
         et = np.zeros((n_el, 2))
 
-    # Combinine multiple arrays
+        # --- Combinine multiple arrays
         a_and_r = np.hstack((a, r))
 
         temp_table = tab.tabulate(
@@ -188,7 +181,7 @@ class ModelSolver:
             showindex=range(1, len(a_and_r) + 1),
         )
 
-        # Calculate element flows and gradients
+        # --- Calculate element flows and gradients
         es = np.zeros([n_el, 2])
         et = np.zeros([n_el, 2])
 
@@ -197,15 +190,13 @@ class ModelSolver:
             eles[:] = es_el[0, :]
             elet[:] = et_el[0, :]
 
-            # --- Store results in model_results
+        # --- Store results in model_results
 
         self.model_result.a = a
         self.model_result.r = r
         self.model_result.ed = ed
         self.model_result.es = es
         self.model_result.et = et  
-
-        # Did not record the results for qs and qt due to these representing the same values as es and et
 
 class ModelReport:
     """Class for presenting input and output parameters in report form."""
@@ -220,13 +211,11 @@ class ModelReport:
     def add_text(self, text=""):
         self.report+=str(text)+"\n"
 
-    # Creating individual arrays for D.o.f. and element numbers due to this not working according to the documentation 
-
     def __str__(self):
         self.clear()
         self.add_text()
         self.add_text("-------------- Model Inputs ----------------------------------")
-        
+        self.add_text()
         self.add_text("Input parameters:")
         self.add_text()
         self.add_text(tab.tabulate(np.asarray([np.hstack((self.model_params.t, self.model_params.k_x))]), 
@@ -247,7 +236,7 @@ class ModelReport:
         self.add_text("Dofs:")
         self.add_text()
         self.add_text(
-            tab.tabulate(np.array([[1], [2], [3], [4], [5], [6]]), headers=["D.o.f."], tablefmt="psql")
+            tab.tabulate(self.model_params.dof.reshape(-1, 1), headers=["D.o.f."], tablefmt="psql")
         )
 
         self.add_text()
@@ -276,7 +265,10 @@ class ModelReport:
         self.add_text()
         self.add_text("Nodal temps and flows (a and r):")
         self.add_text()
-        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4], [5], [6]]), self.model_result.a, self.model_result.r))),
+        dof = self.model_params.dof.flatten().reshape(-1, 1)
+        a = np.array(self.model_result.a).flatten().reshape(-1, 1)
+        r = np.array(self.model_result.r).flatten().reshape(-1, 1)
+        self.add_text(tab.tabulate(np.hstack((dof, a, r)),
             headers=["D.o.f.", "Phi [m]", "q [m^2/day]"],
             numalign="right",
             floatfmt=(".0f", ".4f", ".4f"),
@@ -286,7 +278,7 @@ class ModelReport:
         self.add_text()
         self.add_text("Element flows (es):")
         self.add_text()
-        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.es))),
+        self.add_text(tab.tabulate(np.asarray(np.hstack((self.model_params.elem.reshape(-1, 1), self.model_result.es))),
             headers=["Element", "q_x [m^2/day]", "q_y [m^2/day]"],
             numalign="right",
             floatfmt=(".0f", ".4f", ".4f"),
@@ -296,7 +288,7 @@ class ModelReport:
         self.add_text()
         self.add_text("Element gradients (et):")
         self.add_text()
-        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.et))),
+        self.add_text(tab.tabulate(np.asarray(np.hstack((self.model_params.elem.reshape(-1, 1), self.model_result.et))),
             headers=["Element", "g_x [-]", "g_y [-]"],
             numalign="right",
             floatfmt=(".0f", ".4f", ".4f"),
@@ -306,7 +298,7 @@ class ModelReport:
         self.add_text()
         self.add_text("Element temps (ed):")
         self.add_text()
-        self.add_text(tab.tabulate(np.asarray(np.hstack((np.array([[1], [2], [3], [4]]), self.model_result.ed))),
+        self.add_text(tab.tabulate(np.asarray(np.hstack((self.model_params.elem.reshape(-1, 1), self.model_result.ed))),
             headers=["Element", "Phi_1 [m]", "Phi_2 [m]", "Phi_3 [m]"],
             numalign="right",
             floatfmt=(".0f", ".4f", ".4f", ".4f"),
