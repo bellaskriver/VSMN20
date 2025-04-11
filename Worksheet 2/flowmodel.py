@@ -263,7 +263,7 @@ class ModelReport:
         self.add_text()
         self.add_text("-------------- Model results --------------------------------")
         self.add_text()
-        self.add_text("Nodal temps and flows (a and r):")
+        self.add_text("Nodal pressure and flows (a and r):")
         self.add_text()
         dof = self.model_params.dof.flatten().reshape(-1, 1)
         a = np.array(self.model_result.a).flatten().reshape(-1, 1)
@@ -296,7 +296,7 @@ class ModelReport:
             ))
         
         self.add_text()
-        self.add_text("Element temps (ed):")
+        self.add_text("Element pressure (ed):")
         self.add_text()
         self.add_text(tab.tabulate(np.asarray(np.hstack((self.model_params.elem.reshape(-1, 1), self.model_result.ed))),
             headers=["Element", "Phi_1 [m]", "Phi_2 [m]", "Phi_3 [m]"],
