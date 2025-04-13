@@ -373,11 +373,11 @@ class ModelSolver:
             gradient.append(np.sqrt(et[0, 0]**2 + et[0, 1]**2))
 
         # Maximal flow, pressure, gradient for nodes and elements
-        max_nodal_pressure = np.max(a)
-        max_nodal_flow = np.max(r)
-        max_element_pressure = np.max(ed)
-        max_element_flow = np.max(flow)
-        max_element_gradient = np.max(gradient)
+        max_nodal_pressure = np.max(np.abs(a))
+        max_nodal_flow = np.max(np.abs(r))
+        max_element_pressure = np.max(np.abs(ed))
+        max_element_flow = np.max(np.abs(flow))
+        max_element_gradient = np.max(np.abs(gradient))
 
         # Store results in model_result
         self.model_result.loads = list(zip(bc, bcVal)) 
