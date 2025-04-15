@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import test3 as fm  # Import test3.py
+import flowmodel_3 as fm  # Import test3.py
 
 if __name__ == "__main__":
 
@@ -10,8 +10,11 @@ if __name__ == "__main__":
     model_solver = fm.ModelSolver(model_params, model_result) # Initiate class ModelSolver
     
     # --- Save and Load ---
-    #model_params.load("test_json1") # Load file
-    model_params.save("test_json1") # Save file
+    try:
+        model_params.load("test_json_3") # Load file
+    except FileNotFoundError:
+        print("File not found. Creating a new file.")
+        model_params.save("test_json_3")
     
     # --- Calculations ---
     model_solver.execute() # Execute ModelSolver
