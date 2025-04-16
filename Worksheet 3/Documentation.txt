@@ -1,0 +1,16 @@
+Documentation for worksheet 3
+
+Breif explanation of geometric model:
+The groundwaterflow problem was chosen and the geometry is created accordingly. There are 8 nodes, well named in flowmodel_3.py,
+which mark the edges of the mesh as well as the placemnet of the barrier. Between these splines are placed to create edges.
+The width of the entire geometry is w=100m, the height is h=10m, the depth of the barrier id d=5m, and the thisckness of the barrier is t=0.5m.
+
+Analysis of parameter study results:
+The parameter study is done for the flow in relation to the depth of the barrier. The depth varied between 1 and 9 meters, 
+were the results showed a minimal flow for a barrier with a depth of 7m. This information could be advantageus
+to minimize the flow, due to this often times being the aim of adding a barrier.
+
+Challenges:
+A big challange was the code not running. This was due to the version of Python and numpy being too "up to date" and not 
+cooperating with CALFEM and mac OS. This was solved by reinstalling the older versions of python and numpy. Another problem 
+occured due to an error with "Qt", which required installing PyQt5, even though it isn't used for anything. 

@@ -406,7 +406,7 @@ class ModelSolver:
         """Run a parameter study by varying the barrier depth"""
 
         # Parameters to vary
-        d_values = np.linspace(3.0, 7.0, 10)
+        d_values = np.linspace(1.0, 9.0, 9)
         max_flow_values = []
 
         # Run simulation for each value
