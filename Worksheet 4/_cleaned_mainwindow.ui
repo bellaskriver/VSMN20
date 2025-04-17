@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -46,7 +46,7 @@
        </widget>
       </item>
       <item row="2" column="2">
-       <widget class="QLineEdit" name="h_text"/>
+       <widget class="QLineEdit" name="h_text" />
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="w_label">
@@ -58,7 +58,7 @@
       <item row="9" column="2">
        <widget class="QSlider" name="element_size_slider">
         <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
+         <enum>Horizontal</enum>
         </property>
        </widget>
       </item>
@@ -84,13 +84,13 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QLineEdit" name="w_text"/>
+       <widget class="QLineEdit" name="w_text" />
       </item>
       <item row="3" column="2">
-       <widget class="QLineEdit" name="d_text"/>
+       <widget class="QLineEdit" name="d_text" />
       </item>
       <item row="5" column="2">
-       <widget class="QLineEdit" name="kx_text"/>
+       <widget class="QLineEdit" name="kx_text" />
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="d_label">
@@ -114,10 +114,10 @@
        </widget>
       </item>
       <item row="7" column="2">
-       <widget class="QLineEdit" name="right_bc_text"/>
+       <widget class="QLineEdit" name="right_bc_text" />
       </item>
       <item row="4" column="2">
-       <widget class="QLineEdit" name="t_text"/>
+       <widget class="QLineEdit" name="t_text" />
       </item>
       <item row="6" column="0">
        <widget class="QLabel" name="ky_label">
@@ -127,7 +127,7 @@
        </widget>
       </item>
       <item row="6" column="2">
-       <widget class="QLineEdit" name="ky_text"/>
+       <widget class="QLineEdit" name="ky_text" />
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="input_values_label">
@@ -137,7 +137,7 @@
        </widget>
       </item>
       <item row="8" column="2">
-       <widget class="QLineEdit" name="left_bc_text"/>
+       <widget class="QLineEdit" name="left_bc_text" />
       </item>
       <item row="7" column="0">
        <widget class="QLabel" name="right_bc_label">
@@ -156,7 +156,7 @@
      </layout>
     </item>
     <item>
-     <widget class="QPlainTextEdit" name="plainTextEdit"/>
+     <widget class="QPlainTextEdit" name="plainTextEdit" />
     </item>
    </layout>
   </widget>
@@ -173,22 +173,22 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="new_action"/>
-    <addaction name="open_action"/>
-    <addaction name="save_action"/>
-    <addaction name="save_as_action"/>
-    <addaction name="exit_action"/>
+    <addaction name="new_action" />
+    <addaction name="open_action" />
+    <addaction name="save_action" />
+    <addaction name="save_as_action" />
+    <addaction name="exit_action" />
    </widget>
    <widget class="QMenu" name="menu_calculate">
     <property name="title">
      <string>Calculate</string>
     </property>
-    <addaction name="execute_action"/>
+    <addaction name="execute_action" />
    </widget>
-   <addaction name="menu_file"/>
-   <addaction name="menu_calculate"/>
+   <addaction name="menu_file" />
+   <addaction name="menu_calculate" />
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar" />
   <action name="new_action">
    <property name="text">
     <string>New</string>
@@ -220,6 +220,6 @@
    </property>
   </action>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>

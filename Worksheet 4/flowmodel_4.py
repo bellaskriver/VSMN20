@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-
 import json # Import JSON for saving and loading
-import math # Import math for mathematical operations
-import sys # Import sys for system-specific parameters and functions
 
 import calfem.core as cfc # For core finite element functions
 import calfem.geometry as cfg # For geometry creation
