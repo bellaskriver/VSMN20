@@ -2,14 +2,17 @@
 from qtpy.QtCore import QThread
 from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from qtpy.uic import loadUi
-import xml.etree.ElementTree as ET
+
 import os
+import sys
+
+import xml.etree.ElementTree as ET
+import calfem.vis_mpl as cfv
 import numpy as np
 import flowmodel_4 as fm
 
-
 def clean_ui(uifile):
-    # Fix Qt4 enum issues for orientation properties
+    """Fix issues with Orientation:Horizontal/Vertical by creating _cleaned_mainwindow.ui"""
     tree = ET.parse(uifile)
     root = tree.getroot()
     for enum in root.findall(".//property[@name='orientation']/enum"):
@@ -22,35 +25,35 @@ def clean_ui(uifile):
     tree.write(clean_file, encoding='utf-8', xml_declaration=True)
     return clean_file
 
-
 class SolverThread(QThread):
     def __init__(self, solver):
         super().__init__()
         self.solver = solver
+
     def run(self):
         self.solver.execute()
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        # Clean UI file to replace Qt4 enum values
+
+        # Clean UI file
         ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow.ui')
         clean_path = clean_ui(ui_path)
         loadUi(clean_path, self)
 
-        # Embed menu on macOS
+        # Menu placement
         self.menuBar().setNativeMenuBar(False)
 
-        # Slider configuration
-        self.element_size_label.setText('Element size (0.5 - 1.0)')
+        # Element size slider
+        self.element_size_label.setText('Element size (0.5 - 1.0)') #bella,get rid of it saying 0.5-1
         self.element_size_slider.setRange(50, 100)
 
         # Set input placeholders including boundary fields
         placeholders = {
             'w_text': '100.0', 'h_text': '10.0', 'd_text': '5.0', 't_text': '0.5',
             'kx_text': '20.0', 'ky_text': '20.0',
-            'left_bc_text': '0.0', 'right_bc_text': '0.0'
+            'left_bc_text': '60.0', 'right_bc_text': '0.0'
         }
         for attr, text in placeholders.items():
             if hasattr(self, attr):
@@ -108,15 +111,19 @@ class MainWindow(QMainWindow):
             self.model_params.t = parse_attr('t_text', 't')
             self.model_params.kx = parse_attr('kx_text', 'kx')
             self.model_params.ky = parse_attr('ky_text', 'ky')
+
             # Boundary conditions
             self.model_params.left_bc = parse_attr('left_bc_text', 'left_bc')
             self.model_params.right_bc = parse_attr('right_bc_text', 'right_bc')
+
             # Propagate into bc_values dict if present
             if hasattr(self.model_params, 'bc_values'):
                 self.model_params.bc_values['left_bc'] = self.model_params.left_bc
                 self.model_params.bc_values['right_bc'] = self.model_params.right_bc
+
         except ValueError:
             return False
+        
         # Derived properties
         mp = self.model_params
         mp.D = np.array([[mp.kx, 0], [0, mp.ky]])
@@ -126,7 +133,7 @@ class MainWindow(QMainWindow):
     def on_new(self):
         self.__init__()
 
-    def on_open(self):
+    def on_open(self): #bella, funkar inte, crashar 
         fn, _ = QFileDialog.getOpenFileName(self, 'Open model', '', 'Model files (*.json)')
         if not fn: return
         mp = fm.ModelParams()
@@ -173,7 +180,8 @@ class MainWindow(QMainWindow):
 
     def on_execute(self):
         """Run solver unless already executed; prompt to start new model if so"""
-        # Prevent re-execution on the same parameters
+
+        # Prevent re-execution
         if self.model_results is not None:
             QMessageBox.warning(
                 self,
@@ -181,7 +189,8 @@ class MainWindow(QMainWindow):
                 'To generate another domain create a new file.'
             )
             return
-        # Ensure all parameters are entered
+        
+        # Ensure all parameters are entered #bella, funkar inte
         if not self.update_model():
             QMessageBox.warning(
                 self,
@@ -190,6 +199,7 @@ class MainWindow(QMainWindow):
             )
             return
         self.setEnabled(False)
+
         # Start solver thread
         self.model_results = fm.ModelResult()
         self.solver_thread = SolverThread(
@@ -205,21 +215,19 @@ class MainWindow(QMainWindow):
             btn.setEnabled(True)
 
     def on_show_geometry(self):
-        import calfem.vis_mpl as cfv
         cfv.figure(); cfv.clf()
         cfv.draw_geometry(self.model_params.geometry(), draw_points=True,
                           label_points=True, label_curves=True)
-        cfv.show_and_wait()
+        cfv.show_and_wait() #bella, kan man inte gör asom två nedanför
 
     def on_show_mesh(self):
-        import calfem.vis_mpl as cfv
         cfv.figure(); cfv.clf()
         cfv.draw_mesh(coords=self.model_results.coords,
                       edof=self.model_results.edof,
                       dofs_per_node=self.model_results.dofs_per_node,
                       el_type=self.model_results.el_type,
                       filled=True)
-        cfv.show_and_wait()
+        cfv.show_and_wait() #bella, kan man inte göra som nedanför?
 
     def on_show_nodal_values(self):
         vis = fm.ModelVisualization(self.model_params, self.model_results)
@@ -229,9 +237,7 @@ class MainWindow(QMainWindow):
         vis = fm.ModelVisualization(self.model_params, self.model_results)
         vis.show_element_values(); vis.wait()
 
-
 if __name__ == '__main__':
-    import sys
     app = QApplication(sys.argv)
     window = MainWindow()
     sys.exit(app.exec_())

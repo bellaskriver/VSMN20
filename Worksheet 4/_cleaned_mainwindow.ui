@@ -17,10 +17,10 @@
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="3">
-       <widget class="QPushButton" name="show_geometry_button">
+      <item row="0" column="0">
+       <widget class="QLabel" name="input_values_label">
         <property name="text">
-         <string>Geometry</string>
+         <string>Input values</string>
         </property>
        </widget>
       </item>
@@ -31,29 +31,14 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="3">
-       <widget class="QPushButton" name="show_element_values_button">
-        <property name="text">
-         <string>Element Values</string>
-        </property>
-       </widget>
+      <item row="6" column="2">
+       <widget class="QLineEdit" name="ky_text" />
       </item>
-      <item row="0" column="3">
-       <widget class="QLabel" name="generation_label">
-        <property name="text">
-         <string>Generate</string>
-        </property>
-       </widget>
+      <item row="8" column="2">
+       <widget class="QLineEdit" name="left_bc_text" />
       </item>
-      <item row="2" column="2">
-       <widget class="QLineEdit" name="h_text" />
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="w_label">
-        <property name="text">
-         <string>Width of domain: w (m)</string>
-        </property>
-       </widget>
+      <item row="3" column="2">
+       <widget class="QLineEdit" name="d_text" />
       </item>
       <item row="9" column="2">
        <widget class="QSlider" name="element_size_slider">
@@ -62,40 +47,10 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="kx_label">
+      <item row="1" column="0">
+       <widget class="QLabel" name="w_label">
         <property name="text">
-         <string>Permeability in x-direction: kx</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="3">
-       <widget class="QPushButton" name="show_nodal_values_button">
-        <property name="text">
-         <string>Nodal Values</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="t_label">
-        <property name="text">
-         <string>Thickness of barrier: t (m)</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="w_text" />
-      </item>
-      <item row="3" column="2">
-       <widget class="QLineEdit" name="d_text" />
-      </item>
-      <item row="5" column="2">
-       <widget class="QLineEdit" name="kx_text" />
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="d_label">
-        <property name="text">
-         <string>Depth of barrier: d (m)</string>
+         <string>Width of domain: w (m)</string>
         </property>
        </widget>
       </item>
@@ -106,6 +61,13 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="show_geometry_button">
+        <property name="text">
+         <string>Geometry</string>
+        </property>
+       </widget>
+      </item>
       <item row="9" column="0">
        <widget class="QLabel" name="element_size_label">
         <property name="text">
@@ -113,8 +75,22 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="2">
-       <widget class="QLineEdit" name="right_bc_text" />
+      <item row="4" column="0">
+       <widget class="QLabel" name="t_label">
+        <property name="text">
+         <string>Thickness of barrier: t (m)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="1">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>0.5</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLineEdit" name="w_text" />
       </item>
       <item row="4" column="2">
        <widget class="QLineEdit" name="t_text" />
@@ -126,18 +102,39 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="2">
-       <widget class="QLineEdit" name="ky_text" />
+      <item row="5" column="2">
+       <widget class="QLineEdit" name="kx_text" />
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="input_values_label">
+      <item row="8" column="0">
+       <widget class="QLabel" name="left_bc_label">
         <property name="text">
-         <string>Input values</string>
+         <string>Pressure on left surface: (mvp)</string>
         </property>
        </widget>
       </item>
-      <item row="8" column="2">
-       <widget class="QLineEdit" name="left_bc_text" />
+      <item row="3" column="3">
+       <widget class="QPushButton" name="show_nodal_values_button">
+        <property name="text">
+         <string>Nodal Values</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="d_label">
+        <property name="text">
+         <string>Depth of barrier: d (m)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="3">
+       <widget class="QPushButton" name="show_element_values_button">
+        <property name="text">
+         <string>Element Values</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="2">
+       <widget class="QLineEdit" name="right_bc_text" />
       </item>
       <item row="7" column="0">
        <widget class="QLabel" name="right_bc_label">
@@ -146,10 +143,20 @@
         </property>
        </widget>
       </item>
-      <item row="8" column="0">
-       <widget class="QLabel" name="left_bc_label">
+      <item row="5" column="0">
+       <widget class="QLabel" name="kx_label">
         <property name="text">
-         <string>Pressure on left surface: (mvp)</string>
+         <string>Permeability in x-direction: kx</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLineEdit" name="h_text" />
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="generation_label">
+        <property name="text">
+         <string>Generate</string>
         </property>
        </widget>
       </item>

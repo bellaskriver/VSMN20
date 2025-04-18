@@ -201,7 +201,7 @@ class ModelVisualization:
         cfv.show()
 
     def show_mesh(self):
-        """Display finite element mesh"""
+        """Display Finite Element Mesh"""
 
         # Create a new figure
         cfv.figure()
