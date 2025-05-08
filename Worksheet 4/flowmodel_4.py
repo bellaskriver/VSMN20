@@ -180,25 +180,20 @@ class ModelVisualization:
     def show_geometry(self):
         """Display model geometry"""
 
+        geometry = self.model_params.geometry()  
+
         # Create a new figure
         cfv.figure()
         cfv.clf()
 
-        # Draw Geometry
+        # Draw Geometry§
         cfv.draw_geometry(
-            geometry = self.model_result.geometry, 
-            draw_points=True, 
-            label_points=True, 
-            label_curves=True, 
+            geometry,
+            draw_points=True,
+            label_points=True,
+            label_curves=True,
             title="Model Geometry"
         )
-
-        geometry = self.model_results.geometry
-
-        self.geom_fig = cfv.figure(self.geom_fig)
-        cfv.clf()            
-        cfv.draw_geometry(geometry, title="Geometry")
-        cfv.show()
 
     def show_mesh(self):
         """Display Finite Element Mesh"""
@@ -415,7 +410,6 @@ class ModelSolver:
         # Run simulation for each value
         for d in d_values:
             print(f"Simulating with barrier depth d = {d:.2f}...")
-
             # Create model with current parameter
             model_params = ModelParams()
             model_params.d = d  # Set current barrier depth
@@ -448,7 +442,7 @@ class ModelSolver:
         plt.savefig('parameter_study.png')
         plt.show()
 
-        # Return results for further analysis if needed
+        # Return results for further analysis
         return d_values, max_flow_values
 
 class ModelReport:

@@ -1,12 +1,12 @@
 {
     "D": [
         [
-            20.0,
+            10.0,
             0.0
         ],
         [
             0.0,
-            20.0
+            10.0
         ]
     ],
     "bc_markers": {
@@ -14,21 +14,21 @@
         "right_bc": 20
     },
     "bc_values": {
-        "left_bc": 60.0,
+        "left_bc": 10.0,
         "right_bc": 0.0
     },
-    "d": 5.0,
-    "el_size_factor": 0.5,
+    "d": 1.0,
+    "el_size_factor": 1.0,
     "ep": [
         0.5,
         2
     ],
     "h": 10.0,
-    "kx": 20.0,
-    "ky": 20.0,
+    "kx": 10.0,
+    "ky": 10.0,
     "load_markers": {},
     "load_values": {},
-    "t": 0.5,
+    "t": 1.0,
     "version": 1,
-    "w": 100.0
+    "w": 10.0
 }

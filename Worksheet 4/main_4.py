@@ -2,9 +2,9 @@
 import sys
 import main_window as mw
 
-from qtpy.QtCore import QThread #bella
-from qtpy.QtWidgets import QApplication, QDialog, QWidget, QMainWindow, QFileDialog #bella
-from qtpy.uic import loadUi #bella
+from qtpy.QtCore import QThread
+from qtpy.QtWidgets import QApplication, QDialog, QWidget, QMainWindow, QFileDialog
+from qtpy.uic import loadUi
 
 if __name__ == '__main__':
 

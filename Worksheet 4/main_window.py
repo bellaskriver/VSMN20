@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qtpy.QtCore import QThread
 from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDialog, QWidget
-from qtpy.uic import loadUi #bella uic?
+from qtpy.uic import loadUi
 
 import os
 import sys
@@ -34,27 +34,42 @@ class SolverThread(QThread):
         self.solver.execute()
 
 class MainWindow(QMainWindow):
+    """Main window for the application."""
     def __init__(self):
-        super().__init__()
+        
+        """Constructor for the main window."""
+        super(QMainWindow, self).__init__()
 
-        # Clean UI file
+        # Visualization object
+        self.visualization = None
+
+        # Calculation not finished
+        self.calc_done = False
+
+        # Clean UI file and load interface description
         ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow.ui')
-        clean_path = clean_ui(ui_path)
-        loadUi(clean_path, self)
+        loadUi(clean_ui(ui_path), self)
 
-        # Menu placement
+        # Menu placement in ui window
         self.menuBar().setNativeMenuBar(False)
 
         # Element size slider
-        self.element_size_label.setText('Element size (0.5 - 1.0)') #bella,get rid of it saying 0.5-1
+        self.element_size_label.setText('Element size:')
         self.element_size_slider.setRange(50, 100)
 
         # Set input placeholders including boundary fields
         placeholders = {
-            'w_text': '100.0', 'h_text': '10.0', 'd_text': '5.0', 't_text': '0.5',
-            'kx_text': '20.0', 'ky_text': '20.0',
-            'left_bc_text': '60.0', 'right_bc_text': '0.0'
+            'w_text': '100.0 m', 
+            'h_text': '10.0 m', 
+            'd_text': '5.0 m', 
+            't_text': '0.5 m',
+            'kx_text': '20.0 m/day', 
+            'ky_text': '20.0 m/day',
+            'left_bc_text': '60.0 mvp', 
+            'right_bc_text': '0.0 mvp'
         }
+
+        # Set placeholder text for all QLineEdit widgets
         for attr, text in placeholders.items():
             if hasattr(self, attr):
                 widget = getattr(self, attr)
@@ -62,8 +77,10 @@ class MainWindow(QMainWindow):
                 widget.setPlaceholderText(text)
 
         # Disable visualization buttons initially
-        for btn in (self.show_geometry_button, self.show_mesh_button,
-                    self.show_nodal_values_button, self.show_element_values_button):
+        for btn in (self.show_geometry_button, 
+                    self.show_mesh_button,
+                    self.show_nodal_values_button, 
+                    self.show_element_values_button):
             btn.setEnabled(False)
 
         # Connect menu actions
@@ -91,49 +108,62 @@ class MainWindow(QMainWindow):
 
     def update_model(self):
         """Read UI fields into model_params and update boundary conditions."""
+        # Ensure we have a ModelParams to write into
         if not self.model_params:
             self.model_params = fm.ModelParams()
-        def parse_attr(attr_name, param_name):
-            if hasattr(self, attr_name):
-                txt = getattr(self, attr_name).text().strip()
-                if txt:
-                    try:
-                        return float(txt)
-                    except ValueError:
-                        QMessageBox.warning(self, 'Invalid input', f'Enter valid {param_name}')
-                        raise
-            return getattr(self.model_params, param_name)
-        try:
-            # Physical parameters
-            self.model_params.w = parse_attr('w_text', 'w')
-            self.model_params.h = parse_attr('h_text', 'h')
-            self.model_params.d = parse_attr('d_text', 'd')
-            self.model_params.t = parse_attr('t_text', 't')
-            self.model_params.kx = parse_attr('kx_text', 'kx')
-            self.model_params.ky = parse_attr('ky_text', 'ky')
 
-            # Boundary conditions
-            self.model_params.left_bc = parse_attr('left_bc_text', 'left_bc')
-            self.model_params.right_bc = parse_attr('right_bc_text', 'right_bc')
+        # Define the mapping of UI fields to model parameters
+        fields = [
+            ('w_text',       'w',        'Width of domain (w)'),
+            ('h_text',       'h',        'Height of domain (h)'),
+            ('d_text',       'd',        'Depth of barrier (d)'),
+            ('t_text',       't',        'Thickness of barrier (t)'),
+            ('kx_text',      'kx',       'Permeability in x (kx)'),
+            ('ky_text',      'ky',       'Permeability in y (ky)'),
+            ('left_bc_text', 'left_bc',  'Left surface pressure (mvp)'),
+            ('right_bc_text','right_bc', 'Right surface pressure (mvp)'),
+        ]
 
-            # Propagate into bc_values dict if present
-            if hasattr(self.model_params, 'bc_values'):
-                self.model_params.bc_values['left_bc'] = self.model_params.left_bc
-                self.model_params.bc_values['right_bc'] = self.model_params.right_bc
+        invalid = []
+       
+        # Read values from UI fields and set them in model_params
+        for widget_name, param_name, label in fields:
+            widget = getattr(self, widget_name, None)
+            txt = widget.text().strip() if widget else ''
+            try:
+                value = float(txt)
+            except Exception:
+                invalid.append(label)
+            else:
+                setattr(self.model_params, param_name, value)
 
-        except ValueError:
+        # Warnings for invalid inputs
+        if invalid:
+            QMessageBox.warning(
+                self,
+                'Invalid input',
+                'Please enter valid numbers for:\n' + '\n'.join(invalid)
+            )
             return False
-        
-        # Derived properties
+
+        # Propagate into bc_values
+        if hasattr(self.model_params, 'bc_values'):
+            self.model_params.bc_values['left_bc']  = self.model_params.left_bc
+            self.model_params.bc_values['right_bc'] = self.model_params.right_bc
+
+        # Properties
         mp = self.model_params
         mp.D = np.array([[mp.kx, 0], [0, mp.ky]])
         mp.el_size_factor = self.element_size_slider.value() / 100.0
+
         return True
 
     def on_new(self):
         self.__init__()
 
-    def on_open(self): #bella, funkar inte, crashar 
+    def on_open(self):
+        """Open a model file and load its parameters into the UI."""
+        # Open file dialog to select a model file
         fn, _ = QFileDialog.getOpenFileName(self, 'Open model', '', 'Model files (*.json)')
         if not fn: return
         mp = fm.ModelParams()
@@ -142,11 +172,25 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'Load failed: {e}')
             return
-        for param, attr in [('w','w_text'), ('h','h_text'), ('d','d_text'), ('t','t_text'),
-                             ('kx','kx_text'), ('ky','ky_text'),
-                             ('left_bc','left_bc_text'), ('right_bc','right_bc_text')]:
-            if hasattr(self, attr):
-                getattr(self, attr).setText(str(getattr(mp, param)))
+       
+        # Set the model parameters in the UI
+        for param, attr in [('w','w_text'), 
+                            ('h','h_text'), 
+                            ('d','d_text'), 
+                            ('t','t_text'),
+                             ('kx','kx_text'), 
+                             ('ky','ky_text'),
+                             ('left_bc','left_bc_text'), 
+                             ('right_bc','right_bc_text')]:
+                
+                if not hasattr(self, attr):
+                    continue
+                if param in mp.bc_values:
+                    text = str(mp.bc_values[param])
+                else:
+                    text = str(getattr(mp, param, ''))
+                getattr(self, attr).setText(text)
+
         self.model_params = mp
         self.model_results = None
         for btn in (self.show_geometry_button, self.show_mesh_button,
@@ -154,7 +198,9 @@ class MainWindow(QMainWindow):
             btn.setEnabled(False)
 
     def on_save(self):
-        if not self.model_params or not self.update_model():
+        """Save model parameters to the current file or prompt for a new file."""
+        # Check if model_params is None or if update_model() fails
+        if not self.model_params:
             QMessageBox.warning(self, 'Warning', 'Nothing to save or invalid data.')
             return
         fn = getattr(self.model_params, 'filename', None)
@@ -167,20 +213,28 @@ class MainWindow(QMainWindow):
             self.on_save_as()
 
     def on_save_as(self):
-        if not self.model_params or not self.update_model():
-            QMessageBox.warning(self, 'Warning', 'Nothing to save or invalid data.')
-            return
+        """Prompt for a file name and save model parameters to that file."""
+        # Ensure we have a model_params to save into
+        if not self.model_params:
+            self.model_params = fm.ModelParams()
+
+        # Prompt for filename
         fn, _ = QFileDialog.getSaveFileName(self, 'Save As', '', 'Model files (*.json)')
-        if fn:
-            try:
-                self.model_params.save(fn)
-                self.model_params.filename = fn
-            except Exception as e:
-                QMessageBox.critical(self, 'Error', f'Save failed: {e}')
+
+        # If Cancel is pressed or no filename is provided
+        if not fn:
+            return
+
+        # Save the model parameters to the specified file
+        try:
+            _ = self.update_model()
+            self.model_params.save(fn)
+            self.model_params.filename = fn
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f'Save failed: {e}')
 
     def on_execute(self):
         """Run solver unless already executed; prompt to start new model if so"""
-
         # Prevent re-execution
         if self.model_results is not None:
             QMessageBox.warning(
@@ -190,14 +244,12 @@ class MainWindow(QMainWindow):
             )
             return
         
-        # Ensure all parameters are entered #bella, funkar inte
+        # Silently abort execution if parameters are missing
         if not self.update_model():
-            QMessageBox.warning(
-                self,
-                'Missing Parameters',
-                'Please fill in all parameters before execution.'
-            )
             return
+        
+        # Calculation not finished
+        self.calc_done = False
         self.setEnabled(False)
 
         # Start solver thread
@@ -209,41 +261,82 @@ class MainWindow(QMainWindow):
         self.solver_thread.start()
 
     def on_solver_finished(self):
+        """Handle completion of the solver thread."""
         self.setEnabled(True)
+        
+        # Caluclation finished
+        self.calc_done = True
+
+        # Recreate visualization object
+        self.visualization = fm.ModelVisualization(self.model_params, self.model_results)
+
         for btn in (self.show_geometry_button, self.show_mesh_button,
                     self.show_nodal_values_button, self.show_element_values_button):
             btn.setEnabled(True)
 
     def on_show_geometry(self):
-        cfv.figure(); cfv.clf()
-        cfv.draw_geometry(self.model_params.geometry(), draw_points=True,
-                          label_points=True, label_curves=True)
-        cfv.show()
+        """Display the geometry of the model."""
+
+        if not self.calc_done or self.visualization is None:
+            QMessageBox.warning(self, 'No Data', 'Please run the calculation first.')
+            return
+        self.visualization.show_geometry()
+
+        cfv.figure() 
+        cfv.clf()
+        cfv.draw_geometry(self.model_params.geometry(), 
+                          draw_points=True,
+                          label_points=True, 
+                          label_curves=True, 
+                          title='Model Geometry')
+        cfv.show_and_wait()
 
     def on_show_mesh(self):
-        cfv.figure(); cfv.clf()
+        """Display the finite element mesh of the model."""
+
+        if not self.calc_done or self.visualization is None:
+            QMessageBox.warning(self, 'No Data', 'Please run the calculation first.')
+            return
+        self.visualization.show_mesh()
+
+        cfv.figure() 
+        cfv.clf()
         cfv.draw_mesh(coords=self.model_results.coords,
                       edof=self.model_results.edof,
                       dofs_per_node=self.model_results.dofs_per_node,
                       el_type=self.model_results.el_type,
-                      filled=True)
-        cfv.show()
+                      filled=True, title='Finite Element Mesh')
+        cfv.show_and_wait()
 
     def on_show_nodal_values(self):
+        """Display nodal values of the model."""
+
+        if not self.calc_done or self.visualization is None:
+            QMessageBox.warning(self, 'No Data', 'Please run the calculation first.')
+            return
+        self.visualization.show_nodal_values()
+
         vis = fm.ModelVisualization(self.model_params, self.model_results)
-        vis.show_nodal_values(); vis.wait()
+        vis.show_nodal_values() 
+        vis.wait()
 
     def on_show_element_values(self):
+        """Display element values of the model."""
+
+        if not self.calc_done or self.visualization is None:
+            QMessageBox.warning(self, 'No Data', 'Please run the calculation first.')
+            return
+        self.visualization.show_element_values()
+
         vis = fm.ModelVisualization(self.model_params, self.model_results)
-        vis.show_element_values(); vis.wait()
+        vis.show_element_values() 
+        vis.wait()
 
     def on_element_size_change(self, value):
-        # Lazily create model_params if needed
+        """Update the element size factor based on the slider value."""
         if self.model_params is None:
             self.model_params = fm.ModelParams()
-        # Just update the one derived property
         self.model_params.el_size_factor = value / 100.0
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
