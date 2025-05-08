@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qtpy.QtCore import QThread
-from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
-from qtpy.uic import loadUi
+from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDialog, QWidget
+from qtpy.uic import loadUi #bella uic?
 
 import os
 import sys
@@ -80,8 +80,8 @@ class MainWindow(QMainWindow):
         self.show_nodal_values_button.clicked.connect(self.on_show_nodal_values)
         self.show_element_values_button.clicked.connect(self.on_show_element_values)
 
-        # Slider update
-        self.element_size_slider.valueChanged.connect(self.update_model)
+        # Slider only updates element_size_factor
+        self.element_size_slider.valueChanged.connect(self.on_element_size_change)
 
         self.model_params = None
         self.model_results = None
@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
         cfv.figure(); cfv.clf()
         cfv.draw_geometry(self.model_params.geometry(), draw_points=True,
                           label_points=True, label_curves=True)
-        cfv.show_and_wait() #bella, kan man inte gör asom två nedanför
+        cfv.show()
 
     def on_show_mesh(self):
         cfv.figure(); cfv.clf()
@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
                       dofs_per_node=self.model_results.dofs_per_node,
                       el_type=self.model_results.el_type,
                       filled=True)
-        cfv.show_and_wait() #bella, kan man inte göra som nedanför?
+        cfv.show()
 
     def on_show_nodal_values(self):
         vis = fm.ModelVisualization(self.model_params, self.model_results)
@@ -236,6 +236,14 @@ class MainWindow(QMainWindow):
     def on_show_element_values(self):
         vis = fm.ModelVisualization(self.model_params, self.model_results)
         vis.show_element_values(); vis.wait()
+
+    def on_element_size_change(self, value):
+        # Lazily create model_params if needed
+        if self.model_params is None:
+            self.model_params = fm.ModelParams()
+        # Just update the one derived property
+        self.model_params.el_size_factor = value / 100.0
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
