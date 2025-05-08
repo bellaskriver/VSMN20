@@ -282,15 +282,6 @@ class MainWindow(QMainWindow):
             return
         self.visualization.show_geometry()
 
-        cfv.figure() 
-        cfv.clf()
-        cfv.draw_geometry(self.model_params.geometry(), 
-                          draw_points=True,
-                          label_points=True, 
-                          label_curves=True, 
-                          title='Model Geometry')
-        cfv.show_and_wait()
-
     def on_show_mesh(self):
         """Display the finite element mesh of the model."""
 
@@ -298,15 +289,6 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'No Data', 'Please run the calculation first.')
             return
         self.visualization.show_mesh()
-
-        cfv.figure() 
-        cfv.clf()
-        cfv.draw_mesh(coords=self.model_results.coords,
-                      edof=self.model_results.edof,
-                      dofs_per_node=self.model_results.dofs_per_node,
-                      el_type=self.model_results.el_type,
-                      filled=True, title='Finite Element Mesh')
-        cfv.show_and_wait()
 
     def on_show_nodal_values(self):
         """Display nodal values of the model."""
@@ -316,10 +298,6 @@ class MainWindow(QMainWindow):
             return
         self.visualization.show_nodal_values()
 
-        vis = fm.ModelVisualization(self.model_params, self.model_results)
-        vis.show_nodal_values() 
-        vis.wait()
-
     def on_show_element_values(self):
         """Display element values of the model."""
 
@@ -327,10 +305,6 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'No Data', 'Please run the calculation first.')
             return
         self.visualization.show_element_values()
-
-        vis = fm.ModelVisualization(self.model_params, self.model_results)
-        vis.show_element_values() 
-        vis.wait()
 
     def on_element_size_change(self, value):
         """Update the element size factor based on the slider value."""
