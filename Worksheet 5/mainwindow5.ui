@@ -242,6 +242,7 @@
     <addaction name="open_action"/>
     <addaction name="save_action"/>
     <addaction name="save_as_action"/>
+    <addaction name="actionExport_VTK"/>
     <addaction name="exit_action"/>
    </widget>
    <widget class="QMenu" name="menu_calculate">
@@ -282,6 +283,11 @@
   <action name="execute_action">
    <property name="text">
     <string>Execute</string>
+   </property>
+  </action>
+  <action name="actionExport_VTK">
+   <property name="text">
+    <string>Export VTK</string>
    </property>
   </action>
  </widget>

@@ -4,6 +4,9 @@ import json # Import JSON for saving and loading
 import calfem.core as cfc # For core finite element functions
 import calfem.geometry as cfg # For geometry creation
 import calfem.mesh as cfm # For mesh generation
+import pyvtk as vtk
+
+
 import calfem.vis_mpl as cfv # For visualization
 import calfem.utils as cfu # For utility functions
 
@@ -452,6 +455,39 @@ class ModelSolver:
 
         # Return results for further analysis
         return d_values, max_flow_values
+   
+         
+    def export_vtk(self, filename):
+        """Export node‐pressures and cell‐flows to a VTK file."""
+        import pyvtk as vtk
+
+        print(f"Exporting results to {filename!r}...")
+
+        # --- Node coordinates: Nx2 NumPy → Python list
+        points = self.model_result.coords.tolist()
+
+        # --- Element connectivity: drop the first edof column, zero‐base
+        polygons = (self.model_result.edof[:, 1:] - 1).tolist()
+
+        # --- Point data: pressure 'a' (NumPy array)
+        point_data = vtk.PointData(
+            vtk.Scalars(self.model_result.a.tolist(), name="pressure")
+        )
+
+        # --- Cell data: per‐element flow magnitudes (Python list)
+        cell_data = vtk.CellData(
+            vtk.Scalars(self.model_result.flow, name="flow")
+        )
+
+        # --- Build structure and write
+        structure = vtk.PolyData(points=points, polygons=polygons)
+        vtk_data  = vtk.VtkData(structure, point_data, cell_data)
+        vtk_data.tofile(filename, "ascii")
+
+        print("VTK export complete.")
+
+
+    
 
 class ModelReport:
     """Class for presenting input and output parameters in report form."""
