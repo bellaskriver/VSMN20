@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-from qtpy.QtCore import QThread
-from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDialog, QWidget
+from qtpy.QtCore import Qt, QThread
+from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 from qtpy.uic import loadUi
 
 import os
 import sys
-
 import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
 import calfem.vis_mpl as cfv
 import numpy as np
-import flowmodel_4 as fm
+import flowmodel_5 as fm
 
 def clean_ui(uifile):
     """Fix issues with Orientation:Horizontal/Vertical by creating _cleaned_mainwindow.ui"""
@@ -21,7 +21,7 @@ def clean_ui(uifile):
             enum.text = 'Horizontal'
         elif 'Orientation::Vertical' in txt:
             enum.text = 'Vertical'
-    clean_file = os.path.join(os.path.dirname(uifile), '_cleaned_mainwindow.ui')
+    clean_file = os.path.join(os.path.dirname(uifile), '_cleaned_mainwindow_5.ui')
     tree.write(clean_file, encoding='utf-8', xml_declaration=True)
     return clean_file
 
@@ -46,8 +46,11 @@ class MainWindow(QMainWindow):
         # Calculation not finished
         self.calc_done = False
 
+        # Model parameters
+        self.model_params = fm.ModelParams()
+
         # Clean UI file and load interface description
-        ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow.ui')
+        ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow5.ui')
         loadUi(clean_ui(ui_path), self)
 
         # Menu placement in ui window
@@ -76,7 +79,37 @@ class MainWindow(QMainWindow):
                 widget.clear()
                 widget.setPlaceholderText(text)
 
-        # Disable visualization buttons initially
+        # Set default values for the model parameters
+        defaults = {
+            'w_text':           str(self.model_params.w),
+            'h_text':           str(self.model_params.h),
+            'd_text':           str(self.model_params.d),
+            't_text':           str(self.model_params.t),
+            'kx_text':          str(self.model_params.kx),
+            'ky_text':          str(self.model_params.ky),
+            'left_bc_text':     str(self.model_params.bc_values['left_bc']),
+            'right_bc_text':    str(self.model_params.bc_values['right_bc']),
+            # for the “parameter‐study” end‐values:
+            'dEndEdit':         str(self.model_params.d),
+            'tEndEdit':         str(self.model_params.t),
+        }
+        for attr, val in defaults.items():
+            if hasattr(self, attr):
+                getattr(self, attr).setText(val)
+
+            self.element_size_slider.setValue(int(self.model_params.el_size_factor * 100))
+        
+        # Set default values for the parameter study
+        if hasattr(self, 'paramStep'):
+            self.paramStep.setValue(4)
+
+        # Clear checked radio buttons
+        if hasattr(self, 'paramVaryDRadio'):
+            self.paramVaryDRadio.setChecked(False)
+        if hasattr(self, 'paramVaryTRadio'):
+            self.paramVaryTRadio.setChecked(False)
+
+        # Disable buttons initially
         for btn in (self.show_geometry_button, 
                     self.show_mesh_button,
                     self.show_nodal_values_button, 
@@ -90,6 +123,7 @@ class MainWindow(QMainWindow):
         self.save_as_action.triggered.connect(self.on_save_as)
         self.exit_action.triggered.connect(self.close)
         self.execute_action.triggered.connect(self.on_execute)
+        self.paramButton.clicked.connect(self.on_execute_param_study)
 
         # Connect visualization buttons
         self.show_geometry_button.clicked.connect(self.on_show_geometry)
@@ -108,11 +142,12 @@ class MainWindow(QMainWindow):
 
     def update_model(self):
         """Read UI fields into model_params and update boundary conditions."""
+
         # Ensure we have a ModelParams to write into
         if not self.model_params:
             self.model_params = fm.ModelParams()
 
-        # Define the mapping of UI fields to model parameters
+        # Define the mapping
         fields = [
             ('w_text',       'w',        'Width of domain (w)'),
             ('h_text',       'h',        'Height of domain (h)'),
@@ -163,6 +198,7 @@ class MainWindow(QMainWindow):
 
     def on_open(self):
         """Open a model file and load its parameters into the UI."""
+
         # Open file dialog to select a model file
         fn, _ = QFileDialog.getOpenFileName(self, 'Open model', '', 'Model files (*.json)')
         if not fn: return
@@ -243,22 +279,32 @@ class MainWindow(QMainWindow):
                 'To generate another domain create a new file.'
             )
             return
-        
-        # Silently abort execution if parameters are missing
+
+        # UI values into model_params
         if not self.update_model():
             return
-        
-        # Calculation not finished
+
+        # Disable UI until solver finishes
         self.calc_done = False
         self.setEnabled(False)
 
-        # Start solver thread
+        # Create fresh result & solver
         self.model_results = fm.ModelResult()
-        self.solver_thread = SolverThread(
-            fm.ModelSolver(self.model_params, self.model_results)
-        )
-        self.solver_thread.finished.connect(self.on_solver_finished)
-        self.solver_thread.start()
+        self.solver = fm.ModelSolver(self.model_params, self.model_results)
+
+        # Show “please wait” dialog
+        progress = QProgressDialog("Running simulation…", None, 0, 0, self)
+        progress.setWindowTitle("Please wait")
+        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setCancelButton(None)
+        progress.setMinimumDuration(0)
+        progress.show()
+
+        # Launch the solver in its thread
+        self.solverThread = SolverThread(self.solver)
+        self.solverThread.finished.connect(progress.close)
+        self.solverThread.finished.connect(self.on_solver_finished)
+        self.solverThread.start()
 
     def on_solver_finished(self):
         """Handle completion of the solver thread."""
@@ -311,6 +357,107 @@ class MainWindow(QMainWindow):
         if self.model_params is None:
             self.model_params = fm.ModelParams()
         self.model_params.el_size_factor = value / 100.0
+
+    def on_execute_param_study(self):
+        """Run a parameter study, either on depth (d) or thickness (t), and log results."""
+        # Params from the UI
+        if not self.update_model():
+            return
+
+        # Decide which parameter to vary
+        if self.paramVaryDRadio.isChecked():
+            var_name = 'd'
+            start_val = self.model_params.d
+            try:
+                end_val = float(self.dEndEdit.text())
+            except ValueError:
+                QMessageBox.warning(self, 'Invalid Input',
+                                    'Depth end‐value must be a number.')
+                return
+            xlabel = 'Barrier Depth d'
+        elif self.paramVaryTRadio.isChecked():
+            var_name = 't'
+            start_val = self.model_params.t
+            try:
+                end_val = float(self.tEndEdit.text())
+            except ValueError:
+                QMessageBox.warning(self, 'Invalid Input',
+                                    'Thickness end‐value must be a number.')
+                return
+            xlabel = 'Barrier Thickness t'
+        else:
+            QMessageBox.warning(self, 'Parameter Study',
+                                'Please check “Vary d” or “Vary t” to enable a sweep.')
+            return
+
+        # Steps from the UI
+        n_steps = self.paramStep.value()
+        if n_steps < 2:
+            QMessageBox.warning(self, 'Invalid Input',
+                                'Number of steps must be at least 2.')
+            return
+
+        vals = np.linspace(start_val, end_val, n_steps)
+
+        # Progress dialog
+        progress = QProgressDialog(f"Running parameter study of {var_name}…",
+                                   "Abort", 0, n_steps-1, self)
+        progress.setWindowTitle("Please wait")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.show()
+
+        # Prepare for plotting
+        self.plainTextEdit.clear()
+        flows = []
+
+        #
+        for i, v in enumerate(vals):
+            # allow cancellation
+            progress.setValue(i)
+            QApplication.processEvents()
+            if progress.wasCanceled():
+                break
+
+            # Copy all other params into a fresh ModelParams
+            base = self.model_params
+            p = fm.ModelParams()
+            p.w = base.w
+            p.h = base.h
+            p.d = v if var_name == 'd' else base.d
+            p.t = v if var_name == 't' else base.t
+            p.kx = base.kx
+            p.ky = base.ky
+            p.bc_markers = base.bc_markers
+            p.bc_values= base.bc_values.copy()
+            p.load_markers = base.load_markers
+            p.load_values = base.load_values.copy()
+            p.el_size_factor = base.el_size_factor
+
+            # Solve the model
+            mr = fm.ModelResult()
+            solver = fm.ModelSolver(p, mr)
+            solver.execute()
+
+            mf = mr.max_element_flow
+            flows.append(mf)
+
+            # Log into the plainTextEdit
+            self.plainTextEdit.appendPlainText(
+                f"{var_name} = {v:.4g}  →  max element-flow = {mf:.4g}"
+            )
+
+        progress.setValue(n_steps-1)
+        progress.close()
+
+        cfv.figure()
+        plt.clf()
+        plt.plot(vals[:len(flows)], flows)
+        plt.xlabel(xlabel)
+        plt.ylabel('Max Element Flow')
+        plt.title(f'Parameter Study: {xlabel} vs Max Element Flow')
+        plt.grid(True)
+        cfv.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
