@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-import main_window_5 as mw
+import main_window as mw
 
 from qtpy.QtCore import QThread
 from qtpy.QtWidgets import QApplication, QDialog, QWidget, QMainWindow, QFileDialog

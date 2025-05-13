@@ -9,7 +9,7 @@ import sys
 import xml.etree.ElementTree as ET
 import calfem.vis_mpl as cfv
 import numpy as np
-import flowmodel_5 as fm
+import flowmodel_4 as fm
 
 def clean_ui(uifile):
     """Fix issues with Orientation:Horizontal/Vertical by creating _cleaned_mainwindow.ui"""
