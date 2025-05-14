@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-import json # Import JSON for saving and loading
-import pyvtk as vtk # For VTK file export
+import json
+import pyvtk as vtk
 
-import calfem.core as cfc # For core finite element functions
-import calfem.geometry as cfg # For geometry creation
-import calfem.mesh as cfm # For mesh generation
-import calfem.vis_mpl as cfv # For visualization
-import calfem.utils as cfu # For utility functions
+import calfem.core as cfc
+import calfem.geometry as cfg
+import calfem.mesh as cfm
+import calfem.vis_mpl as cfv
+import calfem.utils as cfu
 
-import matplotlib.pylab as plt # For plotting
-import tabulate as tab # For tabular data representation
-import numpy as np # For numerical operations
+import matplotlib.pylab as plt
+import tabulate as tab
+import numpy as np
 
 class ModelParams:
     """Class defining parametric model properties"""
@@ -19,7 +19,7 @@ class ModelParams:
         # Version tracking
         self.version = 1
 
-        # Geometric parameters (example for groundwater problem)
+        # Geometric parameters
         self.w = 100.0 # Width of domain
         self.h = 10.0 # Height of domain
         self.d = 5.0 # Depth of barrier
@@ -86,12 +86,12 @@ class ModelParams:
         # Define the surface using the spline indices
         g.surface([0, 1, 2, 3, 4, 5, 6, 7])
   
-        # Return the complete geometry
         return g
     
     def save(self, filename):
         """Save input to file."""
-        model_params = {}
+
+        model_params = {} # Create a dictionary to store model parameters
         model_params["version"] = self.version
         model_params["t"] = self.t
         model_params["ep"] = self.ep
@@ -107,6 +107,7 @@ class ModelParams:
         model_params["load_markers"] = self.load_markers
         model_params["load_values"] = self.load_values
 
+        # Write the model parameters to a JSON file
         ofile = open(filename, "w")
         json.dump(model_params, ofile, sort_keys = True, indent = 4)
         ofile.close()
@@ -114,6 +115,7 @@ class ModelParams:
     def load(self, filename):
         """Read input from file."""
 
+        # Read the model parameters from a JSON file
         ifile = open(filename, "r")
         model_params = json.load(ifile)
         ifile.close()
@@ -135,6 +137,7 @@ class ModelParams:
     
 class ModelResult:
     """Class for storing results from calculations."""
+
     def __init__(self):
 
         # Initialize attributes for mesh and geometry
@@ -169,6 +172,8 @@ class ModelVisualization:
 
     def __init__(self, model_params, model_result):
         """Constructor"""
+
+        # Store references to model parameters and results
         self.model_params = model_params
         self.model_result = model_result
 
@@ -181,15 +186,13 @@ class ModelVisualization:
     def show_geometry(self):
         """Display model geometry"""
 
-        geometry = self.model_params.geometry()  
-
         # Create a new figure
         cfv.figure()
         cfv.clf()
 
         # Draw Geometry§
         cfv.draw_geometry(
-            geometry,
+            geometry = self.model_params.geometry(),
             draw_points=True,
             label_points=True,
             label_curves=True,
@@ -255,10 +258,12 @@ class ModelVisualization:
 
     def wait(self):
         """Wait for user to close all visualization windows"""
+
         cfv.show_and_wait()
 
 class ModelSolver:
     """Class for solving the finite element model"""
+
     def __init__(self, model_params, model_result):
         self.model_params = model_params
         self.model_result = model_result
@@ -272,10 +277,8 @@ class ModelSolver:
         ky = self.model_params.ky
         D = self.model_params.D
 
-        # Get geometry from model_params
+        # Get geometry and store it
         geometry = self.model_params.geometry()
-
-        # Store geometry in results for visualization
         self.model_result.geometry = geometry
 
         # Set up mesh generation
@@ -309,36 +312,6 @@ class ModelSolver:
         K = np.zeros((n_dofs, n_dofs))
         f = np.zeros((n_dofs, 1))
 
-        for marker_name, marker_id in self.model_params.load_markers.items():
-            if marker_name in self.model_params.load_values:
-                value = self.model_params.load_values[marker_name]
-
-                if marker_id in boundary_elements:
-                    for be in boundary_elements[marker_id]:
-                        nodes = be["node-number-list"]
-                        if len(nodes) != 2:
-                            continue
-
-                        node1 = nodes[0] - 1
-                        node2 = nodes[1] - 1
-
-                        dofs_node1 = bdofs.get(node1)
-                        dofs_node2 = bdofs.get(node2)
-
-                        if dofs_node1 is None or dofs_node2 is None:
-                            continue
-
-                        dof1 = dofs_node1[0]
-                        dof2 = dofs_node2[0]
-
-                        x1, y1 = coords[node1]
-                        x2, y2 = coords[node2]
-
-                        edge_length = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-                        f[dof1] += value * edge_length / 2.0
-                        f[dof2] += value * edge_length / 2.0
-
         # Global stiffness matrix
         nDofs = np.size(dofs) # Number of global degrees of freedom
         ex, ey = cfc.coordxtr(edof, coords, dofs) # Extract coordinates of elements
@@ -347,6 +320,7 @@ class ModelSolver:
         n_el = edof.shape[0] # Number of elements
         ep = np.tile(self.model_params.ep, (n_el, 1)).astype(object)
 
+        # Assemble global stiffness matrix
         for i, (eltopo, elx, ely) in enumerate(zip(edof, ex, ey)):
             thickness = float(ep[i][0])
             integration_rule = int(ep[i][1])
@@ -361,6 +335,7 @@ class ModelSolver:
         bc = np.array([], int)
         bcVal = np.array([], int)
 
+        # Apply boundary conditions
         for name, marker in self.model_params.bc_markers.items():
             value = self.model_params.bc_values.get(name, 0.0)
             bc, bcVal = cfu.applybc(bdofs, bc, bcVal, marker, value)
@@ -370,8 +345,8 @@ class ModelSolver:
         ed = cfc.extractEldisp(edof, a)
 
         # Calculate element flows
-        flow = []
-        gradient = []
+        flow = [] # List to store flow values
+        gradient = [] # List to store gradient values
 
         for i in range(edof.shape[0]):
             el_ep = [float(ep[i][0]), int(ep[i][1])]
@@ -386,7 +361,7 @@ class ModelSolver:
         max_element_flow = np.max(np.abs(flow))
         max_element_gradient = np.max(np.abs(gradient))
 
-        # Store results in model_result
+        # Store results in model_result and model_params
         self.model_result.loads = list(zip(bc, bcVal)) 
         self.model_result.bcs = list(zip(bc, bcVal))
         self.model_result.edof = edof
@@ -453,30 +428,23 @@ class ModelSolver:
 
         # Return results for further analysis
         return d_values, max_flow_values
-   
          
     def export_vtk(self, filename):
         """Export node‐pressures and cell‐flows to a VTK file."""
 
         print(f"Exporting results to {filename!r}...")
 
-        # --- Node coordinates: Nx2 NumPy → Python list
+        # Import geometry, mesh and flow
         points = self.model_result.coords.tolist()
-
-        # --- Element connectivity: drop the first edof column, zero‐base
         polygons = (self.model_result.edof[:, 1:] - 1).tolist()
-
-        # --- Point data: pressure 'a' (NumPy array)
         point_data = vtk.PointData(
             vtk.Scalars(self.model_result.a.tolist(), name="pressure")
         )
-
-        # --- Cell data: per‐element flow magnitudes (Python list)
         cell_data = vtk.CellData(
             vtk.Scalars(self.model_result.flow, name="flow")
         )
 
-        # --- Build structure and write
+        # Create VTK structure
         structure = vtk.PolyData(points=points, polygons=polygons)
         vtk_data  = vtk.VtkData(structure, point_data, cell_data)
         vtk_data.tofile(filename, "ascii")
@@ -485,6 +453,7 @@ class ModelSolver:
 
 class ModelReport:
     """Class for presenting input and output parameters in report form."""
+
     def __init__(self, model_params, model_result):
         self.model_params = model_params
         self.model_result = model_result

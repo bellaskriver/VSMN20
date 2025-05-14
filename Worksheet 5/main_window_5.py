@@ -14,7 +14,7 @@ import numpy as np
 import flowmodel_5 as fm
 
 def clean_ui(uifile):
-    """Fix issues with Orientation:Horizontal/Vertical by creating _cleaned_mainwindow.ui"""
+    """Fix issues with Orientation:Horizontal/Vertical by creating _cleaned_mainwindow_5.ui"""
     tree = ET.parse(uifile)
     root = tree.getroot()
     for enum in root.findall(".//property[@name='orientation']/enum"):
@@ -41,25 +41,21 @@ class MainWindow(QMainWindow):
         
         """Constructor for the main window."""
         super(QMainWindow, self).__init__()
-
-        # Visualization object
-        self.visualization = None
-
-        # Calculation not finished
-        self.calc_done = False
-
-        # Model parameters
-        self.model_params = fm.ModelParams()
-
+   
+        # Set up
+        self.model_params = fm.ModelParams() # Model parameters
+        self.visualization = None # Visualization object
+        self.calc_done = False # Calculation status
+       
         # Clean UI file and load interface description
         ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow5.ui')
+        loadUi(clean_ui(ui_path), self) #loads cleaned_mainwindow_5.ui
 
-        loadUi(clean_ui(ui_path), self)
-
-        mono = QFont("Courier", 10)
+        # Font settings
+        mono = QFont("ComicSans", 12)
         self.plainTextEdit.setFont(mono)
 
-        # Connect Export→VTK menu item (try both naming conventions)
+        # Export VTK
         if hasattr(self, 'actionExport_VTK'):
             self.actionExport_VTK.triggered.connect(self.on_export_vtk)
         elif hasattr(self, 'actionExportVTK'):
@@ -74,7 +70,7 @@ class MainWindow(QMainWindow):
         self.element_size_label.setText('Element size:')
         self.element_size_slider.setRange(50, 100)
 
-        # Set input placeholders including boundary fields
+        # Set placeholders
         placeholders = {
             'w_text': '100.0 m', 
             'h_text': '10.0 m', 
@@ -86,14 +82,14 @@ class MainWindow(QMainWindow):
             'right_bc_text': '0.0 mvp'
         }
 
-        # Set placeholder text for all QLineEdit widgets
+        # Set placeholder text
         for attr, text in placeholders.items():
             if hasattr(self, attr):
                 widget = getattr(self, attr)
                 widget.clear()
                 widget.setPlaceholderText(text)
 
-        # Set default values for the model parameters
+        # Set default values
         defaults = {
             'w_text':           str(self.model_params.w),
             'h_text':           str(self.model_params.h),
@@ -103,10 +99,11 @@ class MainWindow(QMainWindow):
             'ky_text':          str(self.model_params.ky),
             'left_bc_text':     str(self.model_params.bc_values['left_bc']),
             'right_bc_text':    str(self.model_params.bc_values['right_bc']),
-            # for the “parameter‐study” end‐values:
             'dEndEdit':         str(self.model_params.d),
             'tEndEdit':         str(self.model_params.t),
         }
+
+        # Set default values in UI
         for attr, val in defaults.items():
             if hasattr(self, attr):
                 getattr(self, attr).setText(val)
