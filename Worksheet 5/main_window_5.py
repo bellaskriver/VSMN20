@@ -2,6 +2,7 @@
 from qtpy.QtCore import Qt, QThread
 from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 from qtpy.uic import loadUi
+from qtpy.QtGui import QFont
 
 import os
 import sys
@@ -9,6 +10,7 @@ import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 import calfem.vis_mpl as cfv
 import numpy as np
+
 import flowmodel_5 as fm
 
 def clean_ui(uifile):
@@ -51,7 +53,19 @@ class MainWindow(QMainWindow):
 
         # Clean UI file and load interface description
         ui_path = os.path.join(os.path.dirname(__file__), 'mainwindow5.ui')
+
         loadUi(clean_ui(ui_path), self)
+
+        mono = QFont("Courier", 10)
+        self.plainTextEdit.setFont(mono)
+
+        # Connect Export→VTK menu item (try both naming conventions)
+        if hasattr(self, 'actionExport_VTK'):
+            self.actionExport_VTK.triggered.connect(self.on_export_vtk)
+        elif hasattr(self, 'actionExportVTK'):
+            self.actionExportVTK.triggered.connect(self.on_export_vtk)
+        else:
+            print("Warning: could not find Export VTK action in UI!")
 
         # Menu placement in ui window
         self.menuBar().setNativeMenuBar(False)
@@ -195,6 +209,7 @@ class MainWindow(QMainWindow):
 
     def on_new(self):
         self.__init__()
+        self.paramButton.setEnabled(True)
 
     def on_open(self):
         """Open a model file and load its parameters into the UI."""
@@ -247,6 +262,34 @@ class MainWindow(QMainWindow):
                 self.on_save_as()
         else:
             self.on_save_as()
+
+    def on_export_vtk(self):
+        # Ensure we've actually run a solve (and have a solver to export from)
+        if not hasattr(self, 'solver') or self.solver is None:
+            QMessageBox.warning(self, "Nothing to export",
+                                 "Please run the simulation first.")
+            return
+
+        # Prompt user for filename
+        fn, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export VTK File",
+            "",
+            "VTK files (*.vtk);; All files (*)"
+        )
+        if not fn:
+            return
+
+        # Delegate to the solver's export method
+        try:
+            self.solver.export_vtk(fn)
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed",
+                                 f"Could not write VTK:\n{e}")
+            return
+
+        QMessageBox.information(self, "Export Successful",
+                                f"Wrote VTK file:\n{fn}")
 
     def on_save_as(self):
         """Prompt for a file name and save model parameters to that file."""
@@ -319,6 +362,47 @@ class MainWindow(QMainWindow):
         for btn in (self.show_geometry_button, self.show_mesh_button,
                     self.show_nodal_values_button, self.show_element_values_button):
             btn.setEnabled(True)
+
+                # --- Build a neat, monospaced summary
+
+        self.paramButton.setEnabled(False)
+
+        mp = self.model_params
+        mr = self.model_results
+
+        lines = []
+        lines.append("=== Model Inputs ===")
+        # list of (label, value) tuples in desired order
+        inputs = [
+            ("Width (w)"       , mp.w),
+            ("Height (h)"      , mp.h),
+            ("Barrier depth (d)", mp.d),
+            ("Thickness (t)"   , mp.t),
+            ("Permeability kx" , mp.kx),
+            ("Permeability ky" , mp.ky),
+            ("Element size"    , mp.el_size_factor),
+            ("Left BC"         , mp.bc_values["left_bc"]),
+            ("Right BC"        , mp.bc_values["right_bc"]),
+        ]
+        # align the colon at column  twenty for neatness
+        for label, val in inputs:
+            lines.append(f"{label:<20s}: {val}")
+
+        lines.append("")  # blank separator
+        lines.append("=== Model Results ===")
+        results = [
+            ("Max nodal pressure"  , mr.max_nodal_pressure),
+            ("Max nodal residual"  , mr.max_nodal_flow),
+            ("Max element pressure", mr.max_element_pressure),
+            ("Max element flow"    , mr.max_element_flow),
+            ("Max element gradient", mr.max_element_gradient),
+        ]
+        for label, val in results:
+            lines.append(f"{label:<20s}: {val:.4f}")
+
+        # set into the UI
+        self.plainTextEdit.setPlainText("\n".join(lines))
+
 
     def on_show_geometry(self):
         """Display the geometry of the model."""

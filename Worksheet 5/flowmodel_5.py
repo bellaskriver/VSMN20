@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 import json # Import JSON for saving and loading
+import pyvtk as vtk # For VTK file export
 
 import calfem.core as cfc # For core finite element functions
 import calfem.geometry as cfg # For geometry creation
 import calfem.mesh as cfm # For mesh generation
-import pyvtk as vtk
-
-
 import calfem.vis_mpl as cfv # For visualization
 import calfem.utils as cfu # For utility functions
 
@@ -459,7 +457,6 @@ class ModelSolver:
          
     def export_vtk(self, filename):
         """Export node‐pressures and cell‐flows to a VTK file."""
-        import pyvtk as vtk
 
         print(f"Exporting results to {filename!r}...")
 
@@ -485,9 +482,6 @@ class ModelSolver:
         vtk_data.tofile(filename, "ascii")
 
         print("VTK export complete.")
-
-
-    
 
 class ModelReport:
     """Class for presenting input and output parameters in report form."""

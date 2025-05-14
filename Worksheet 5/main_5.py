@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-import main_window5b as mw
+import main_window_5 as mw
 from qtpy.QtWidgets import QApplication
 
 if __name__ == '__main__':
