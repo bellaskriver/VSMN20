@@ -400,7 +400,6 @@ class MainWindow(QMainWindow):
         # set into the UI
         self.plainTextEdit.setPlainText("\n".join(lines))
 
-
     def on_show_geometry(self):
         """Display the geometry of the model."""
 
@@ -492,9 +491,8 @@ class MainWindow(QMainWindow):
         self.plainTextEdit.clear()
         flows = []
 
-        #
+        # Abort button
         for i, v in enumerate(vals):
-            # allow cancellation
             progress.setValue(i)
             QApplication.processEvents()
             if progress.wasCanceled():
