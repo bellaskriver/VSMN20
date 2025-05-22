@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import calfem.core as cfc
-import calfem.utils as cfu
 import tabulate as tab
 import json
 
