@@ -3,3 +3,6 @@
 Kursen VSMN20 utförd i Python.
 
 Kräver: 
+numpy
+gmsh
+calfem
