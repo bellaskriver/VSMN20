@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 from qtpy.QtCore import QThread
-from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDialog, QWidget
+from qtpy.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from qtpy.uic import loadUi
-
 import os
 import sys
-
 import xml.etree.ElementTree as ET
-import calfem.vis_mpl as cfv
 import numpy as np
 import flowmodel_4 as fm
 
@@ -159,7 +156,37 @@ class MainWindow(QMainWindow):
         return True
 
     def on_new(self):
-        self.__init__()
+        """Clear the current model and UI for a fresh calculation in the same window."""
+        # 1) Reset your model objects
+        self.model_params = fm.ModelParams()
+        self.model_results = fm.ModelResult()
+        self.calc_done = False
+
+        # 2) Clear every input QLineEdit back to default/blank
+        for widget_name in (
+            'w_text', 'h_text', 'd_text', 't_text',
+            'kx_text', 'ky_text', 'left_bc_text', 'right_bc_text'
+        ):
+            if hasattr(self, widget_name):
+                getattr(self, widget_name).clear()
+
+        # 3) Disable any buttons or visualizations that require a run
+        for btn in (
+            self.show_geometry_button,
+            self.show_mesh_button,
+            self.show_nodal_values_button,
+            self.show_element_values_button
+        ):
+            btn.setEnabled(False)
+
+        # 4) (Optional) If you have a matplotlib canvas or other plot widget, clear it:
+        if self.visualization is not None:
+            try:
+                # assuming cfv.VisMpl wraps a Matplotlib figure
+                self.visualization.figure.clf()
+                self.visualization.canvas.draw()
+            except Exception:
+                pass
 
     def on_open(self):
         """Open a model file and load its parameters into the UI."""

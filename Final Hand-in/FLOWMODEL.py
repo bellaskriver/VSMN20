@@ -29,7 +29,6 @@ class ModelParams:
         # Material properties
         self.kx = 20.0 # Permeability in x-direction
         self.ky = 20.0 # Permeability in y-direction
-        self.D = np.array([[self.kx, 0], [0, self.ky]]) # Permeability matrix
     
         # Mesh control
         self.el_size_factor = 0.5 # Elements size in mesh
@@ -43,12 +42,6 @@ class ModelParams:
         self.bc_values = {
             "left_bc": 60.0, # Value for left boundary
             "right_bc": 0.0  # Value for right boundary
-        }
-
-        self.load_markers = {
-        }
-
-        self.load_values = {
         }
 
     def geometry(self):
@@ -100,12 +93,9 @@ class ModelParams:
         model_params["d"] = self.d
         model_params["kx"] = self.kx
         model_params["ky"] = self.ky
-        model_params["D"] = self.D.tolist() # Convert numpy array to list for JSON compatibility
         model_params["el_size_factor"] = self.el_size_factor
         model_params["bc_markers"] = self.bc_markers
         model_params["bc_values"] = self.bc_values
-        model_params["load_markers"] = self.load_markers
-        model_params["load_values"] = self.load_values
 
         # Write the model parameters to a JSON file
         ofile = open(filename, "w")
@@ -128,12 +118,9 @@ class ModelParams:
         self.d = model_params["d"]
         self.kx = model_params["kx"]
         self.ky = model_params["ky"]
-        self.D = np.array(model_params["D"]) # Convert list back to numpy array
         self.el_size_factor = model_params["el_size_factor"]
         self.bc_markers = model_params["bc_markers"]
         self.bc_values = model_params["bc_values"]
-        self.load_markers = model_params["load_markers"]
-        self.load_values = model_params["load_values"]
     
 class ModelResult:
     """Class for storing results from calculations."""
@@ -273,9 +260,7 @@ class ModelSolver:
 
         # Create shorter references to input variables
         ep = self.model_params.ep
-        kx = self.model_params.kx
-        ky = self.model_params.ky
-        D = self.model_params.D
+        D = np.array([[self.model_params.kx, 0], [0, self.model_params.ky]]) # Permeability matrix
 
         # Get geometry and store it
         geometry = self.model_params.geometry()
@@ -316,9 +301,8 @@ class ModelSolver:
         nDofs = np.size(dofs) # Number of global degrees of freedom
         ex, ey = cfc.coordxtr(edof, coords, dofs) # Extract coordinates of elements
         K = np.zeros([nDofs, nDofs]) # Global stiffness matrix
-
         n_el = edof.shape[0] # Number of elements
-        ep = np.tile(self.model_params.ep, (n_el, 1)).astype(object)
+        ep = np.tile(self.model_params.ep, (n_el, 1)).astype(object) # Element properties
 
         # Assemble global stiffness matrix
         for i, (eltopo, elx, ely) in enumerate(zip(edof, ex, ey)):

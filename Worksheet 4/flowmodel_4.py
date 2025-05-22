@@ -28,7 +28,6 @@ class ModelParams:
         # Material properties
         self.kx = 20.0 # Permeability in x-direction
         self.ky = 20.0 # Permeability in y-direction
-        self.D = np.array([[self.kx, 0], [0, self.ky]]) # Permeability matrix
     
         # Mesh control
         self.el_size_factor = 0.5 # Elements size in mesh
@@ -42,12 +41,6 @@ class ModelParams:
         self.bc_values = {
             "left_bc": 60.0, # Value for left boundary
             "right_bc": 0.0  # Value for right boundary
-        }
-
-        self.load_markers = {
-        }
-
-        self.load_values = {
         }
 
     def geometry(self):
@@ -99,12 +92,9 @@ class ModelParams:
         model_params["d"] = self.d
         model_params["kx"] = self.kx
         model_params["ky"] = self.ky
-        model_params["D"] = self.D.tolist() # Convert numpy array to list for JSON compatibility
         model_params["el_size_factor"] = self.el_size_factor
         model_params["bc_markers"] = self.bc_markers
         model_params["bc_values"] = self.bc_values
-        model_params["load_markers"] = self.load_markers
-        model_params["load_values"] = self.load_values
 
         ofile = open(filename, "w")
         json.dump(model_params, ofile, sort_keys = True, indent = 4)
@@ -125,12 +115,9 @@ class ModelParams:
         self.d = model_params["d"]
         self.kx = model_params["kx"]
         self.ky = model_params["ky"]
-        self.D = np.array(model_params["D"]) # Convert list back to numpy array
         self.el_size_factor = model_params["el_size_factor"]
         self.bc_markers = model_params["bc_markers"]
         self.bc_values = model_params["bc_values"]
-        self.load_markers = model_params["load_markers"]
-        self.load_values = model_params["load_values"]
     
 class ModelResult:
     """Class for storing results from calculations."""
@@ -267,9 +254,7 @@ class ModelSolver:
 
         # Create shorter references to input variables
         ep = self.model_params.ep
-        kx = self.model_params.kx
-        ky = self.model_params.ky
-        D = self.model_params.D
+        D = np.array([[self.model_params.kx, 0], [0, self.model_params.ky]]) # Permeability matrix
 
         # Get geometry from model_params
         geometry = self.model_params.geometry()
@@ -303,48 +288,12 @@ class ModelSolver:
         self.model_result.el_type = el_type
         self.model_result.dofs_per_node = dofs_per_node
          
-        # Create global stiffness matrix and load vector
-        n_dofs = np.max(dofs)
-        K = np.zeros((n_dofs, n_dofs))
-        f = np.zeros((n_dofs, 1))
-
-        for marker_name, marker_id in self.model_params.load_markers.items():
-            if marker_name in self.model_params.load_values:
-                value = self.model_params.load_values[marker_name]
-
-                if marker_id in boundary_elements:
-                    for be in boundary_elements[marker_id]:
-                        nodes = be["node-number-list"]
-                        if len(nodes) != 2:
-                            continue
-
-                        node1 = nodes[0] - 1
-                        node2 = nodes[1] - 1
-
-                        dofs_node1 = bdofs.get(node1)
-                        dofs_node2 = bdofs.get(node2)
-
-                        if dofs_node1 is None or dofs_node2 is None:
-                            continue
-
-                        dof1 = dofs_node1[0]
-                        dof2 = dofs_node2[0]
-
-                        x1, y1 = coords[node1]
-                        x2, y2 = coords[node2]
-
-                        edge_length = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-                        f[dof1] += value * edge_length / 2.0
-                        f[dof2] += value * edge_length / 2.0
-
         # Global stiffness matrix
         nDofs = np.size(dofs) # Number of global degrees of freedom
         ex, ey = cfc.coordxtr(edof, coords, dofs) # Extract coordinates of elements
         K = np.zeros([nDofs, nDofs]) # Global stiffness matrix
-
         n_el = edof.shape[0] # Number of elements
-        ep = np.tile(self.model_params.ep, (n_el, 1)).astype(object)
+        ep = np.tile(self.model_params.ep, (n_el, 1)).astype(object) # Element properties
 
         for i, (eltopo, elx, ely) in enumerate(zip(edof, ex, ey)):
             thickness = float(ep[i][0])
@@ -436,9 +385,12 @@ class ModelSolver:
             # Run the simulation
             model_solver.execute()
 
+            # Compute the norm of the flow vector for each element
+            flow_norms = np.linalg.norm(model_result.es, axis=1)
+
             # Store the maximum flow for this configuration
-            max_flow_values.append(np.max(model_result.es))
-            print(f"Maximum flow value: {np.max(model_result.es):.4f}")
+            max_flow_values.append(np.max(flow_norms))
+            print(f"Maximum flow value: {np.max(flow_norms):.4f}")
 
         # Plot the results
         plt.figure(figsize=(10, 6))

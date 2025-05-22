@@ -78,7 +78,6 @@ class ModelParams:
         model_params["version"] = self.version
         model_params["t"] = self.t
         model_params["ep"] = self.ep
-
         model_params["coord"] = self.coord.tolist()  # Convert NumPy array to list for JSON compatibility
 
         ofile = open(filename, "w")
